@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
+#include "../lib/utils.h"
 
 
 /* Globals */
@@ -28,30 +29,6 @@ unsigned int VBO;
 
 /** Color buffer. */
 unsigned int colorbuffer;
-
-/** Vertex shader. */
-const char *vertex_code = "\n"
-"#version 330 core\n"
-"layout (location = 0) in vec3 position;\n"
-"layout (location = 1) in vec3 in_color;\n"
-"out vec3 out_color;\n"
-"\n"
-"void main()\n"
-"{\n"
-"    gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
-"    out_color = in_color;\n"
-"}\0";
-
-/** Fragment shader. */
-const char *fragment_code = "\n"
-"#version 330 core\n"
-"in vec3 out_color;\n"
-"out vec4 FragColor;\n"
-"\n"
-"void main()\n"
-"{\n"
-"    FragColor = vec4(out_color, 1.0f);\n"
-"}\0";
 
 /* Functions. */
 void display(void);
@@ -150,21 +127,17 @@ void initData()
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    
     // Set attributes.
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-
 
     // Color buffer
     glGenBuffers(1, &colorbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
-    
     // Set attributes.
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
-
 
     // Unbind Vertex Array Object.
     glBindVertexArray(0);
@@ -181,7 +154,9 @@ void initShaders()
     int vertex   = glCreateShader(GL_VERTEX_SHADER);
     int fragment = glCreateShader(GL_FRAGMENT_SHADER);
     
-    // Set shaders source
+    // Read and set shaders source
+    const char *vertex_code = readFile("triangle_vtx.glsl");
+    const char *fragment_code = readFile("triangle_frag.glsl");
     glShaderSource(vertex, 1, &vertex_code, NULL);
     glShaderSource(fragment, 1, &fragment_code, NULL);
 

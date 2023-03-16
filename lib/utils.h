@@ -23,3 +23,13 @@
  */
 int createShaderProgram(const char *, const char *);
 
+/** 
+ * Read file.
+ *
+ * Read whole content of a file.
+ *
+ * @param filename String with file name to be read.
+ * @return File content.
+ */
+const char *readFile(const char *);
+

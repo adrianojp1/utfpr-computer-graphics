@@ -72,3 +72,32 @@ int createShaderProgram(const char *vertex_code, const char *fragment_code)
 
     return program;
 }
+
+/** 
+ * Read file.
+ *
+ * Read whole content of a file.
+ *
+ * @param filename String with file name to be read.
+ * @return File content.
+ */
+const char *readFile(const char *filename) {
+    FILE *inputFile;
+	if( ( inputFile = fopen( filename, "r" ) ) == NULL ) {
+		fprintf( stderr, "Error - Unable to open %s\n", filename );
+		exit( -1 );
+	}
+
+    fseek(inputFile, 0, SEEK_END);
+    long length = ftell(inputFile);
+    fseek(inputFile, 0, SEEK_SET);
+
+    char *buffer = (char *) malloc(length + 1);
+    buffer[length] = '\0';
+    fread(buffer, 1, length, inputFile);
+    fclose(inputFile);
+
+	printf( "Read file %s\n", filename );
+
+    return buffer;
+}
