@@ -26,24 +26,31 @@ unsigned int VAO;
 /** Vertex buffer object. */
 unsigned int VBO;
 
+/** Color buffer. */
+unsigned int colorbuffer;
+
 /** Vertex shader. */
 const char *vertex_code = "\n"
 "#version 330 core\n"
 "layout (location = 0) in vec3 position;\n"
+"layout (location = 1) in vec3 in_color;\n"
+"out vec3 out_color;\n"
 "\n"
 "void main()\n"
 "{\n"
 "    gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
+"    out_color = in_color;\n"
 "}\0";
 
 /** Fragment shader. */
 const char *fragment_code = "\n"
 "#version 330 core\n"
+"in vec3 out_color;\n"
 "out vec4 FragColor;\n"
 "\n"
 "void main()\n"
 "{\n"
-"    FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
+"    FragColor = vec4(out_color, 1.0f);\n"
 "}\0";
 
 /* Functions. */
@@ -66,7 +73,7 @@ void display()
     	glUseProgram(program);
     	glBindVertexArray(VAO);
     	// Draws the triangle.
-    	glDrawArrays(GL_TRIANGLES, 0, 6);
+    	glDrawArrays(GL_TRIANGLES, 0, 2*3);
 
     	glutSwapBuffers();
 }
@@ -125,6 +132,15 @@ void initData()
          1.0f,  0.0f, 0.0f,
          0.5f,  1.0f, 0.0f
     };
+
+    float colors[] = {
+        1.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 1.0f,
+        0.0f, 1.0f, 1.0f,
+        0.0f, 1.0f, 1.0f
+    };
     
     // Vertex array object.
     glGenVertexArrays(1, &VAO);
@@ -138,6 +154,17 @@ void initData()
     // Set attributes.
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+
+    // Color buffer
+    glGenBuffers(1, &colorbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+    
+    // Set attributes.
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+
 
     // Unbind Vertex Array Object.
     glBindVertexArray(0);
