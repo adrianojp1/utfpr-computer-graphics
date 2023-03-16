@@ -8,5 +8,8 @@ all: triangle.cpp primitives.cpp rectangle.cpp rectangle2.cpp
 	$(CC) rectangle.cpp ../lib/utils.cpp -o rectangle $(GLLIBS)
 	$(CC) rectangle2.cpp ../lib/utils.cpp -o rectangle2 $(GLLIBS)
 
+triangle: triangle.cpp
+	$(CC) triangle.cpp -o triangle $(GLLIBS)
+
 clean:
 	rm -f triangle primitives rectangle rectangle2

@@ -66,7 +66,7 @@ void display()
     	glUseProgram(program);
     	glBindVertexArray(VAO);
     	// Draws the triangle.
-    	glDrawArrays(GL_TRIANGLES, 0, 3);
+    	glDrawArrays(GL_TRIANGLES, 0, 6);
 
     	glutSwapBuffers();
 }
@@ -118,9 +118,12 @@ void initData()
 {
     // Set triangle vertices.
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
-         0.0f,  0.5f, 0.0f
+        -1.0f, -1.0f, 0.0f,
+         0.0f, -1.0f, 0.0f,
+        -0.5f,  0.0f, 0.0f,
+         0.0f,  0.0f, 0.0f,
+         1.0f,  0.0f, 0.0f,
+         0.5f,  1.0f, 0.0f
     };
     
     // Vertex array object.
