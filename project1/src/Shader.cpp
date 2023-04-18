@@ -1,7 +1,10 @@
-#include "Shader.h"
+#include "Shader.hpp"
+
+#include <GL/glew.h>
+
+#include <iostream>
 
 using namespace std;
-
 
 int Shader::createShaderProgram(const char* vertex_code, const char* fragment_code) {
     int success;
@@ -19,16 +22,14 @@ int Shader::createShaderProgram(const char* vertex_code, const char* fragment_co
     // Compile shaders
     glCompileShader(vertex);
     glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
+    if (!success) {
         glGetShaderInfoLog(vertex, 512, NULL, error);
         cout << "ERROR: Shader comilation error: " << error << endl;
     }
 
     glCompileShader(fragment);
     glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
+    if (!success) {
         glGetShaderInfoLog(fragment, 512, NULL, error);
         cout << "ERROR: Shader comilation error: " << error << endl;
     }
@@ -40,8 +41,7 @@ int Shader::createShaderProgram(const char* vertex_code, const char* fragment_co
     // Build program
     glLinkProgram(program);
     glGetShaderiv(program, GL_LINK_STATUS, &success);
-    if (!success)
-    {
+    if (!success) {
         glGetProgramInfoLog(program, 512, NULL, error);
         cout << "ERROR: Program link error: " << error << endl;
     }
@@ -71,7 +71,7 @@ const char* Shader::readFile(const char* filename) {
     fread(buffer, 1, length, inputFile);
     fclose(inputFile);
 
-    cout << "File read: " << filename << endl;
+    cout << "Shader file read: " << filename << endl;
 
     return buffer;
 }

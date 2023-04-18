@@ -1,20 +1,16 @@
 #pragma once
 
-#include <iostream>
-#include <GL/glew.h>
-#include <GL/freeglut.h>
-
 class Shader {
-public:
+   public:
     int id;
 
-    Shader() {};
+    Shader(){};
 
     void loadAndCreateShader(const char* vtx_filename, const char* frag_filename);
 
     void use();
 
-private:
+   private:
     /**
      * Create program.
      *

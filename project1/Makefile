@@ -12,8 +12,8 @@ all: main
 main: $(SRC_DIR)/main.cpp
 	$(CC) -I $(INC_DIR) $(SRC_DIR)/*.cpp $(LIBS) -o $(OBJ_NAME)
 
-run: main
-	./$(OBJ_NAME)
+# run: main
+# 	./$(OBJ_NAME)
 
 clean:
 	rm -f $(OBJ_NAME)
