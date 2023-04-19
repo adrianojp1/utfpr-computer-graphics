@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <limits>
 
@@ -13,8 +14,24 @@ const float min_float = numeric_limits<float>::min();
 const float max_float = numeric_limits<float>::max();
 
 SceneMesh::SceneMesh() {
+    center = vec3{ 0.0f, 0.0f, 0.0f };
     bound_box_max = vec3{ min_float, min_float, min_float };
     bound_box_min = vec3{ max_float, max_float, max_float };
+
+    transformation = mat4{ 1.0f };
+
+    scene = nullptr;
+    root_node = nullptr;
+
+    position = vec3{ 0.0f, 0.0f, 0.0f };
+    rotation = vec3{ 0.0f, 0.0f, 0.0f };
+    _scale = vec3{ 1.0f, 1.0f, 1.0f };
+
+    translation_mat = mat4{ 1.0f };
+    rotation_x_mat = mat4{ 1.0f };
+    rotation_y_mat = mat4{ 1.0f };
+    rotation_z_mat = mat4{ 1.0f };
+    scale_mat = mat4{ 1.0f };
 }
 
 void SceneMesh::load(const char* mesh_path) {
@@ -200,36 +217,43 @@ void SceneMesh::translate(glm::vec3 translation) {
 
 void SceneMesh::rotate_x(float angles) {
     rotation.x += angles;
-    mat4 mat = glm::translate(mat4(1.0f), position);
+    mat4 mat = glm::translate(mat4(1.0f), center);
     mat = rotate(mat, radians(rotation.x), vec3(1.0f, 0.0f, 0.0f));
-    rotation_x_mat = glm::translate(mat, -position);
+    rotation_x_mat = glm::translate(mat, -center);
     update_transformation();
 }
 
 void SceneMesh::rotate_y(float angles) {
     rotation.y += angles;
-    mat4 mat = glm::translate(mat4(1.0f), position);
+    mat4 mat = glm::translate(mat4(1.0f), center);
     mat = rotate(mat, radians(rotation.y), vec3(0.0f, 1.0f, 0.0f));
-    rotation_y_mat = glm::translate(mat, -position);
+    rotation_y_mat = glm::translate(mat, -center);
     update_transformation();
 }
 
 void SceneMesh::rotate_z(float angles) {
     rotation.z += angles;
-    mat4 mat = glm::translate(mat4(1.0f), position);
+    mat4 mat = glm::translate(mat4(1.0f), center);
     mat = rotate(mat, radians(rotation.z), vec3(0.0f, 0.0f, 1.0f));
-    rotation_z_mat = glm::translate(mat, -position);
+    rotation_z_mat = glm::translate(mat, -center);
     update_transformation();
 }
 
-void SceneMesh::scale(glm::vec3 scale) {
-    this->_scale += scale;
-    mat4 mat = glm::translate(mat4(1.0f), position);
-    mat = glm::scale(mat, radians(this->_scale));
-    scale_mat = glm::translate(mat, -position);
+void SceneMesh::scale(glm::vec3 scale_increment) {
+    _scale += scale_increment;
+    mat4 mat = glm::translate(mat4(1.0f), center);
+    mat = glm::scale(mat, _scale);
+    scale_mat = glm::translate(mat, -center);
     update_transformation();
 }
 
 void SceneMesh::update_transformation() {
     transformation = translation_mat * rotation_z_mat * rotation_y_mat * rotation_x_mat * scale_mat;
 }
+
+unsigned int SceneMesh::getNumMeshes() const { return num_meshes; }
+std::vector<Mesh> SceneMesh::getMeshList() const { return mesh_list; }
+glm::vec3 SceneMesh::getCenter() const { return center; }
+glm::vec3 SceneMesh::getBoundBoxMax() const { return bound_box_max; }
+glm::vec3 SceneMesh::getBoundBoxMin() const { return bound_box_min; }
+glm::mat4 SceneMesh::getTransformation() const { return transformation; }

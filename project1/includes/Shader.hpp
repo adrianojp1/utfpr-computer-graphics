@@ -2,7 +2,6 @@
 
 class Shader {
    public:
-    int id;
 
     Shader(){};
 
@@ -10,7 +9,12 @@ class Shader {
 
     void use();
 
+    // Getters
+    int getId() const;
+
    private:
+    int id;
+    
     /**
      * Create program.
      *

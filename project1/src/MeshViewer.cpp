@@ -23,6 +23,10 @@ void keyboard(unsigned char key, int x, int y) {
     MeshViewer::instance()->_keyboard(key, x, y);
 }
 
+void specialKeys(int key, int x, int y) {
+    MeshViewer::instance()->_specialKeys(key, x, y);
+}
+
 void idle() { MeshViewer::instance()->_idle(); }
 
 /** MeshViewer members */
@@ -62,6 +66,7 @@ void MeshViewer::init(int argc, char** argv) {
     glutReshapeFunc(reshape);
     glutDisplayFunc(display);
     glutKeyboardFunc(keyboard);
+    glutSpecialFunc(specialKeys);
     glutIdleFunc(idle);
 
     // Enable depth test
@@ -101,8 +106,7 @@ void MeshViewer::init_attributes() {
     init_projection = glm::perspective(glm::radians(45.0f), (GLfloat)win_width / win_height, 0.1f, 20.0f);
 }
 
-void MeshViewer::loadResources(const char* mesh_file, const char* vtx_file,
-                               const char* frag_file) {
+void MeshViewer::loadResources(const char* mesh_file, const char* vtx_file, const char* frag_file) {
     // Load mesh
     scene_mesh.load(mesh_file);
 
@@ -115,32 +119,27 @@ void MeshViewer::_display() {
     glClearColor(0.1, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    unsigned int model_loc = glGetUniformLocation(shader.id, "model");
-    unsigned int view_matrix_loc = glGetUniformLocation(shader.id, "view");
-    unsigned int projection_matrix_loc =
-        glGetUniformLocation(shader.id, "projection");
+    unsigned int model_loc = glGetUniformLocation(shader.getId(), "model");
+    unsigned int view_matrix_loc = glGetUniformLocation(shader.getId(), "view");
+    unsigned int projection_matrix_loc = glGetUniformLocation(shader.getId(), "projection");
 
     // unsigned int camera_position_loc = glGetUniformLocation(shader.id,
     // "camera_position"); glUniform3f(camera_position_loc, camera_position.x,
     // camera_position.y, camera_position.z);
 
-    mat4 model = init_model;
-    glUniformMatrix4fv(model_loc, 1, GL_FALSE, value_ptr(model));   // Pass rotation matrix to vertex shader.
-
-    mat4 cam_rotation =
-        rotate(mat4(1.0f), radians(camera_rotation), vec3(0.0f, 1.0f, 0.0f));
-    vec3 camera_position = cam_rotation * vec4(init_camera_position, 1.0f);
-    mat4 view = lookAt(camera_position, scene_mesh.center, up_vec);
-    glUniformMatrix4fv(
-        view_matrix_loc, 1, GL_FALSE,
-        value_ptr(view));   // Uniform: Transfer view matrix to vertex shader.
-
+    mat4 model = scene_mesh.getTransformation();
+    // mat4 cam_rotation = rotate(mat4(1.0f), radians(camera_rotation), vec3(0.0f, 1.0f, 0.0f));
+    // vec3 camera_position = cam_rotation * vec4(init_camera_position, 1.0f);
+    mat4 view = lookAt(init_camera_position, scene_mesh.getCenter(), up_vec);
     mat4 projection = init_projection;
+
+    glUniformMatrix4fv(model_loc, 1, GL_FALSE, value_ptr(model));        // Pass rotation matrix to vertex shader.
+    glUniformMatrix4fv(view_matrix_loc, 1, GL_FALSE, value_ptr(view));   // Uniform: Transfer view matrix to vertex shader.
     glUniformMatrix4fv(projection_matrix_loc, 1, GL_FALSE, value_ptr(projection));
 
-    for (unsigned int i = 0; i < scene_mesh.num_meshes; ++i) {
-        glBindVertexArray(scene_mesh.mesh_list[i].VAO);
-        glDrawElements(GL_TRIANGLES, (GLsizei)scene_mesh.mesh_list[i].vert_indices.size(), GL_UNSIGNED_INT, 0);
+    for (Mesh mesh : scene_mesh.getMeshList()) {
+        glBindVertexArray(mesh.VAO);
+        glDrawElements(GL_TRIANGLES, (GLsizei)mesh.vert_indices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
 
@@ -176,15 +175,37 @@ void MeshViewer::_keyboard(unsigned char key, int x, int y) {
         case 'v':
             if (visual_mode == FACES_MODE) {
                 visual_mode = WIREFRAME_MODE;
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             } else {
                 visual_mode = FACES_MODE;
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             break;
         case 'a':
-
+            switch (transform_mode) {
+                case TRANSLATION_MODE:
+                    scene_mesh.translate(vec3{ 0.0f, 0.0f, -0.01f });
+                    break;
+                case ROTATION_MODE:
+                    scene_mesh.rotate_z(10.0f);
+                    break;
+                case SCALE_MODE:
+                    scene_mesh.scale(vec3{ 0.0f, 0.0f, 0.1f });
+                    break;
+            }
             break;
         case 'd':
-
+            switch (transform_mode) {
+                case TRANSLATION_MODE:
+                    scene_mesh.translate(vec3{ 0.0f, 0.0f, 0.01f });
+                    break;
+                case ROTATION_MODE:
+                    scene_mesh.rotate_z(-10.0f);
+                    break;
+                case SCALE_MODE:
+                    scene_mesh.scale(vec3{ 0.0f, 0.0f, -0.1f });
+                    break;
+            }
             break;
     }
 
@@ -194,24 +215,60 @@ void MeshViewer::_keyboard(unsigned char key, int x, int y) {
 void MeshViewer::_specialKeys(int key, int x, int y) {
     switch (key) {
         case GLUT_KEY_UP:
-
+            switch (transform_mode) {
+                case TRANSLATION_MODE:
+                    scene_mesh.translate(vec3{ 0.0f, 0.01f, 0.0f });
+                    break;
+                case ROTATION_MODE:
+                    scene_mesh.rotate_x(10.0f);
+                    break;
+                case SCALE_MODE:
+                    scene_mesh.scale(vec3{ 0.0f, 0.1f, 0.0f });
+                    break;
+            }
             break;
         case GLUT_KEY_DOWN:
-
-            break;
-        case GLUT_KEY_LEFT:
-
+            switch (transform_mode) {
+                case TRANSLATION_MODE:
+                    scene_mesh.translate(vec3{ 0.0f, -0.01f, 0.0f });
+                    break;
+                case ROTATION_MODE:
+                    scene_mesh.rotate_x(-10.0f);
+                    break;
+                case SCALE_MODE:
+                    scene_mesh.scale(vec3{ 0.0f, -0.1f, 0.0f });
+                    break;
+            }
             break;
         case GLUT_KEY_RIGHT:
-
+            switch (transform_mode) {
+                case TRANSLATION_MODE:
+                    scene_mesh.translate(vec3{ 0.01f, 0.0f, 0.0f });
+                    break;
+                case ROTATION_MODE:
+                    scene_mesh.rotate_y(10.0f);
+                    break;
+                case SCALE_MODE:
+                    scene_mesh.scale(vec3{ 0.1f, 0.0f, 0.0f });
+                    break;
+            }
+            break;
+        case GLUT_KEY_LEFT:
+            switch (transform_mode) {
+                case TRANSLATION_MODE:
+                    scene_mesh.translate(vec3{ -0.01f, 0.0f, 0.0f });
+                    break;
+                case ROTATION_MODE:
+                    scene_mesh.rotate_y(-10.0f);
+                    break;
+                case SCALE_MODE:
+                    scene_mesh.scale(vec3{ -0.1f, 0.0f, 0.0f });
+                    break;
+            }
             break;
     }
 }
 
 void MeshViewer::_idle() {
-    camera_rotation += camera_rotation_speed * delta_time;
-    if (camera_rotation >= 360.0f) {
-        camera_rotation -= 360.0f;
-    }
     glutPostRedisplay();
 }

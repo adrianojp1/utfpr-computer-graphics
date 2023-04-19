@@ -87,3 +87,7 @@ void Shader::loadAndCreateShader(const char* vtx_filename, const char* frag_file
 void Shader::use() {
     glUseProgram(id);
 }
+
+int Shader::getId() const {
+    return id;
+}

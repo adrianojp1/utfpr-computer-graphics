@@ -5,10 +5,12 @@
 #include "SceneMesh.hpp"
 #include "Shader.hpp"
 
+// Transformation modes
 #define TRANSLATION_MODE 0
 #define ROTATION_MODE 1
 #define SCALE_MODE 2
 
+// Visualization modes
 #define FACES_MODE 0
 #define WIREFRAME_MODE 1
 
