@@ -76,9 +76,8 @@ void MeshViewer::init(int argc, char** argv) {
 }
 
 void MeshViewer::init_attributes() {
-    /** Window width. */
+    /** Window size */
     win_width = 800;
-    /** Window height. */
     win_height = 800;
 
     /** Time control */
@@ -90,52 +89,71 @@ void MeshViewer::init_attributes() {
     transform_mode = TRANSLATION_MODE;
     visual_mode = FACES_MODE;
 
-    /** Shaders. */
+    /** Shaders */
     vtx_filename = "./shaders/vtx.glsl";
     frag_filename = "./shaders/frag.glsl";
 
-    /** Camera. */
-    init_camera_position = vec3{ 0.0f, 0.0f, 0.5f };
+    /** Camera */
+    camera_position = vec3{ 0.0f, 0.0f, 0.0f };
     camera_target = vec3{ 0.0f, 0.0f, 0.0f };
     up_vec = vec3{ 0.0f, 1.0f, 0.0f };
-    camera_rotation = 0.0f;
-    camera_rotation_speed = 0.05f;
 
-    init_model = glm::mat4(1.0f);
-    init_view = glm::lookAt(init_camera_position, camera_target, up_vec);
-    init_projection = glm::perspective(glm::radians(45.0f), (GLfloat)win_width / win_height, 0.1f, 20.0f);
+    /** Projection */
+    projection_fovy = 45.0f;
+    projection_near = 0.1f;
+    projection_far = 1.0f;
+
+    mat4 identity{ 1.0f };
+    model = identity;
+    view = identity;
+    projection = identity;
 }
 
 void MeshViewer::loadResources(const char* mesh_file, const char* vtx_file, const char* frag_file) {
     // Load mesh
     scene_mesh.load(mesh_file);
 
+    fit_view_projection();
+
     // Create shaders
     shader.loadAndCreateShader(vtx_file, frag_file);
     shader.use();
+}
+
+void MeshViewer::fit_view_projection() {
+    vec3 scene_box_size = scene_mesh.getBoundBoxMax() - scene_mesh.getBoundBoxMin();
+    float scene_front_size = std::max(scene_box_size.x, scene_box_size.y);
+    float scene_depth = scene_box_size.z;
+
+    // Set view to be 3 times the scene front size
+    float half_view = scene_front_size * 3 / 2;
+    float camera_distance = (half_view / tan(projection_fovy / 2)) + scene_depth / 2;
+
+    camera_target = scene_mesh.getCenter();
+    camera_position = scene_mesh.getCenter();
+    camera_position.z = camera_distance;
+
+    projection_far = std::min(100.0f, scene_depth * 100);
+    view = lookAt(camera_position, camera_target, up_vec);
+    projection = perspective(radians(projection_fovy), (GLfloat)win_width / win_height, projection_near, projection_far);
 }
 
 void MeshViewer::_display() {
     glClearColor(0.1, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // unsigned int camera_position_loc = glGetUniformLocation(shader.getId(), "camera_position");
+    // glUniform3f(camera_position_loc, camera_position.x, camera_position.y, camera_position.z);
+
+    model = scene_mesh.getTransformation();
+
     unsigned int model_loc = glGetUniformLocation(shader.getId(), "model");
-    unsigned int view_matrix_loc = glGetUniformLocation(shader.getId(), "view");
-    unsigned int projection_matrix_loc = glGetUniformLocation(shader.getId(), "projection");
+    unsigned int view_loc = glGetUniformLocation(shader.getId(), "view");
+    unsigned int projection_loc = glGetUniformLocation(shader.getId(), "projection");
 
-    // unsigned int camera_position_loc = glGetUniformLocation(shader.id,
-    // "camera_position"); glUniform3f(camera_position_loc, camera_position.x,
-    // camera_position.y, camera_position.z);
-
-    mat4 model = scene_mesh.getTransformation();
-    // mat4 cam_rotation = rotate(mat4(1.0f), radians(camera_rotation), vec3(0.0f, 1.0f, 0.0f));
-    // vec3 camera_position = cam_rotation * vec4(init_camera_position, 1.0f);
-    mat4 view = lookAt(init_camera_position, scene_mesh.getCenter(), up_vec);
-    mat4 projection = init_projection;
-
-    glUniformMatrix4fv(model_loc, 1, GL_FALSE, value_ptr(model));        // Pass rotation matrix to vertex shader.
-    glUniformMatrix4fv(view_matrix_loc, 1, GL_FALSE, value_ptr(view));   // Uniform: Transfer view matrix to vertex shader.
-    glUniformMatrix4fv(projection_matrix_loc, 1, GL_FALSE, value_ptr(projection));
+    glUniformMatrix4fv(model_loc, 1, GL_FALSE, value_ptr(model));
+    glUniformMatrix4fv(view_loc, 1, GL_FALSE, value_ptr(view));
+    glUniformMatrix4fv(projection_loc, 1, GL_FALSE, value_ptr(projection));
 
     for (Mesh mesh : scene_mesh.getMeshList()) {
         glBindVertexArray(mesh.VAO);

@@ -1,3 +1,7 @@
+/**
+ * Based on https://www.programmingcreatively.com/opengl-tutorial-5-qs.php
+*/
+
 #pragma once
 
 #include <assimp/postprocess.h>

@@ -41,16 +41,18 @@ class MeshViewer {
     SceneMesh scene_mesh;
 
     /** Camera. */
-    glm::vec3 init_camera_position;
+    glm::vec3 camera_position;
     glm::vec3 camera_target;
     glm::vec3 up_vec;
-    float camera_rotation;
-    float camera_rotation_speed;
+
+    float projection_fovy;
+    float projection_near;
+    float projection_far;
 
     /** MVP Matrices */
-    glm::mat4 init_model;
-    glm::mat4 init_view;
-    glm::mat4 init_projection;
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 projection;
 
    public:
     static MeshViewer* instance();
@@ -70,4 +72,6 @@ class MeshViewer {
     void init_attributes();
 
     void loadResources(const char* mesh_file, const char* vtx_file, const char* frag_file);
+
+    void fit_view_projection();
 };
