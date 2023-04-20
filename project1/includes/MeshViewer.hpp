@@ -18,9 +18,8 @@ class MeshViewer {
    private:
     static MeshViewer* _instance;
 
-    /** Window width. */
+    /** Window size */
     int win_width;
-    /** Window height. */
     int win_height;
 
     /** Time control */
@@ -32,19 +31,20 @@ class MeshViewer {
     short transform_mode;
     short visual_mode;
 
-    /** Shaders. */
+    /** Shaders */
     const char* vtx_filename;
     const char* frag_filename;
     Shader shader;
 
-    /** Scene mesh. */
+    /** Scene mesh */
     SceneMesh scene_mesh;
 
-    /** Camera. */
+    /** Camera */
     glm::vec3 camera_position;
     glm::vec3 camera_target;
     glm::vec3 up_vec;
 
+    /** Projection */
     float projection_fovy;
     float projection_near;
     float projection_far;

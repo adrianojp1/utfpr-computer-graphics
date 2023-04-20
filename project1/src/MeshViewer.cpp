@@ -142,15 +142,20 @@ void MeshViewer::_display() {
     glClearColor(0.1, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // unsigned int camera_position_loc = glGetUniformLocation(shader.getId(), "camera_position");
-    // glUniform3f(camera_position_loc, camera_position.x, camera_position.y, camera_position.z);
-
     model = scene_mesh.getTransformation();
+    float scene_near = scene_mesh.getBoundBoxMax().z;
+    float scene_far = scene_mesh.getBoundBoxMin().z;
 
+    unsigned int projection_near_far_loc = glGetUniformLocation(shader.getId(), "projection_near_far");
+    unsigned int scene_near_far_loc = glGetUniformLocation(shader.getId(), "scene_near_far");
+    unsigned int camera_position_loc = glGetUniformLocation(shader.getId(), "camera_position");
     unsigned int model_loc = glGetUniformLocation(shader.getId(), "model");
     unsigned int view_loc = glGetUniformLocation(shader.getId(), "view");
     unsigned int projection_loc = glGetUniformLocation(shader.getId(), "projection");
 
+    glUniform2f(scene_near_far_loc, scene_near, scene_far);
+    glUniform2f(projection_near_far_loc, projection_near, projection_far);
+    glUniform3f(camera_position_loc, camera_position.x, camera_position.y, camera_position.z);
     glUniformMatrix4fv(model_loc, 1, GL_FALSE, value_ptr(model));
     glUniformMatrix4fv(view_loc, 1, GL_FALSE, value_ptr(view));
     glUniformMatrix4fv(projection_loc, 1, GL_FALSE, value_ptr(projection));
