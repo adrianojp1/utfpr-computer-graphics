@@ -13,7 +13,6 @@
 
 #define ASSIMP_PROCESSING_FLAGS aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_GenBoundingBoxes
 
-
 /** Single mesh data class */
 struct Mesh {
     unsigned int VAO, VBO1, VBO2, EBO;
@@ -27,10 +26,9 @@ class SceneMesh {
    private:
 
     // Assimp attributes
-    Assimp::Importer importer;   // https://assimp-docs.readthedocs.io/en/v5.1.0/ ... (An older Assimp website: http://assimp.sourceforge.net/lib_html/index.html)
+    Assimp::Importer importer;
     const aiScene* scene;
-    aiNode* root_node;   // Only being used in the: load_model_cout_console() function.
-
+    
     // Mesh attributes
     unsigned int num_meshes;
     std::vector<Mesh> mesh_list;
@@ -39,18 +37,15 @@ class SceneMesh {
     glm::vec3 bound_box_min;
 
     // Transformation parameters
-    glm::vec3 position;
-    glm::vec3 rotation;
+    glm::vec3 _translation;
+    glm::vec3 _rotation;
     glm::vec3 _scale;
 
-    // Transformation matrices
+    // Transformation matrix
     glm::mat4 translation_mat;
-    glm::mat4 rotation_x_mat;
-    glm::mat4 rotation_y_mat;
-    glm::mat4 rotation_z_mat;
+    glm::mat4 rotation_mat;
     glm::mat4 scale_mat;
-
-    glm::mat4 transformation;
+    glm::mat4 transformation_mat;
 
    public:
     SceneMesh();
@@ -59,10 +54,8 @@ class SceneMesh {
 
     // Transformation
     void translate(glm::vec3 translation);
-    void rotate_x(float angles);
-    void rotate_y(float angles);
-    void rotate_z(float angles);
-    void scale(glm::vec3 scale_increment);
+    void rotate(float degrees, glm::vec3 axis);
+    void scale(glm::vec3 scale);
 
     // Getters
     unsigned int getNumMeshes() const;
@@ -75,9 +68,7 @@ class SceneMesh {
    private:
     // Load methods
     void load_model();
-    void load_model_cout_console();
     void update_scene_bound_box(aiAABB bound_box);
     void set_buffer_data(unsigned int index);
-
     void update_transformation();
 };

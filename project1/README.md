@@ -1,3 +1,3 @@
 TODO:
-- transformações proporcionais ao tamanho do objeto
+- escalar objeto ao invés de afastar camera
 - limpar código

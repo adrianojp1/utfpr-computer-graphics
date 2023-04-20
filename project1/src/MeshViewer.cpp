@@ -12,6 +12,22 @@
 using namespace std;
 using namespace glm;
 
+// Control keys
+#define KEY_UP 0
+#define KEY_DOWN 1
+#define KEY_RIGHT 2
+#define KEY_LEFT 3
+#define KEY_A 4
+#define KEY_D 5
+
+// Axis vectors
+#define AXIS_X \
+    vec3 { 1.0f, 0.0f, 0.0f }
+#define AXIS_Y \
+    vec3 { 0.0f, 1.0f, 0.0f }
+#define AXIS_Z \
+    vec3 { 0.0f, 0.0f, 1.0f }
+
 /** Callbacks pure functions */
 void display() { MeshViewer::instance()->_display(); }
 
@@ -80,6 +96,8 @@ void MeshViewer::init_attributes() {
     win_width = 800;
     win_height = 800;
 
+    background_color = vec4{ 1.0f, 0.0f, 1.0f, 0.0f };
+
     /** Time control */
     old_time = 0;
     delta_time = 0;
@@ -103,10 +121,9 @@ void MeshViewer::init_attributes() {
     projection_near = 0.1f;
     projection_far = 1.0f;
 
-    mat4 identity{ 1.0f };
-    model = identity;
-    view = identity;
-    projection = identity;
+    model = mat4{ 1.0f };
+    view = mat4{ 1.0f };
+    projection = mat4{ 1.0f };
 }
 
 void MeshViewer::loadResources(const char* mesh_file, const char* vtx_file, const char* frag_file) {
@@ -133,13 +150,16 @@ void MeshViewer::fit_view_projection() {
     camera_position = scene_mesh.getCenter();
     camera_position.z = camera_distance;
 
-    projection_far = std::min(100.0f, scene_depth * 100);
+    projection_far = scene_depth * 100;
     view = lookAt(camera_position, camera_target, up_vec);
     projection = perspective(radians(projection_fovy), (GLfloat)win_width / win_height, projection_near, projection_far);
+
+    // Init translation proportion
+    translation_proportion = 0.05 * std::max(std::max(scene_box_size.x, scene_box_size.y), scene_box_size.z);
 }
 
 void MeshViewer::_display() {
-    glClearColor(0.1, 0.2, 0.2, 1.0);
+    glClearColor(background_color.r, background_color.g, background_color.b, background_color.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     model = scene_mesh.getTransformation();
@@ -196,39 +216,13 @@ void MeshViewer::_keyboard(unsigned char key, int x, int y) {
             transform_mode = SCALE_MODE;
             break;
         case 'v':
-            if (visual_mode == FACES_MODE) {
-                visual_mode = WIREFRAME_MODE;
-                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            } else {
-                visual_mode = FACES_MODE;
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            }
+            switch_visual_mode();
             break;
         case 'a':
-            switch (transform_mode) {
-                case TRANSLATION_MODE:
-                    scene_mesh.translate(vec3{ 0.0f, 0.0f, -0.01f });
-                    break;
-                case ROTATION_MODE:
-                    scene_mesh.rotate_z(10.0f);
-                    break;
-                case SCALE_MODE:
-                    scene_mesh.scale(vec3{ 0.0f, 0.0f, 0.1f });
-                    break;
-            }
+            transform_mesh(KEY_A);
             break;
         case 'd':
-            switch (transform_mode) {
-                case TRANSLATION_MODE:
-                    scene_mesh.translate(vec3{ 0.0f, 0.0f, 0.01f });
-                    break;
-                case ROTATION_MODE:
-                    scene_mesh.rotate_z(-10.0f);
-                    break;
-                case SCALE_MODE:
-                    scene_mesh.scale(vec3{ 0.0f, 0.0f, -0.1f });
-                    break;
-            }
+            transform_mesh(KEY_D);
             break;
     }
 
@@ -238,60 +232,113 @@ void MeshViewer::_keyboard(unsigned char key, int x, int y) {
 void MeshViewer::_specialKeys(int key, int x, int y) {
     switch (key) {
         case GLUT_KEY_UP:
-            switch (transform_mode) {
-                case TRANSLATION_MODE:
-                    scene_mesh.translate(vec3{ 0.0f, 0.01f, 0.0f });
-                    break;
-                case ROTATION_MODE:
-                    scene_mesh.rotate_x(10.0f);
-                    break;
-                case SCALE_MODE:
-                    scene_mesh.scale(vec3{ 0.0f, 0.1f, 0.0f });
-                    break;
-            }
+            transform_mesh(KEY_UP);
             break;
         case GLUT_KEY_DOWN:
-            switch (transform_mode) {
-                case TRANSLATION_MODE:
-                    scene_mesh.translate(vec3{ 0.0f, -0.01f, 0.0f });
-                    break;
-                case ROTATION_MODE:
-                    scene_mesh.rotate_x(-10.0f);
-                    break;
-                case SCALE_MODE:
-                    scene_mesh.scale(vec3{ 0.0f, -0.1f, 0.0f });
-                    break;
-            }
+            transform_mesh(KEY_DOWN);
             break;
         case GLUT_KEY_RIGHT:
-            switch (transform_mode) {
-                case TRANSLATION_MODE:
-                    scene_mesh.translate(vec3{ 0.01f, 0.0f, 0.0f });
-                    break;
-                case ROTATION_MODE:
-                    scene_mesh.rotate_y(10.0f);
-                    break;
-                case SCALE_MODE:
-                    scene_mesh.scale(vec3{ 0.1f, 0.0f, 0.0f });
-                    break;
-            }
+            transform_mesh(KEY_RIGHT);
             break;
         case GLUT_KEY_LEFT:
-            switch (transform_mode) {
-                case TRANSLATION_MODE:
-                    scene_mesh.translate(vec3{ -0.01f, 0.0f, 0.0f });
-                    break;
-                case ROTATION_MODE:
-                    scene_mesh.rotate_y(-10.0f);
-                    break;
-                case SCALE_MODE:
-                    scene_mesh.scale(vec3{ -0.1f, 0.0f, 0.0f });
-                    break;
-            }
+            transform_mesh(KEY_LEFT);
             break;
     }
 }
 
 void MeshViewer::_idle() {
     glutPostRedisplay();
+}
+
+void MeshViewer::switch_visual_mode() {
+    if (visual_mode == FACES_MODE) {
+        visual_mode = WIREFRAME_MODE;
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    } else {
+        visual_mode = FACES_MODE;
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+}
+
+void MeshViewer::transform_mesh(unsigned short key) {
+    switch (transform_mode) {
+        case TRANSLATION_MODE:
+            translate_mesh(key);
+            break;
+        case ROTATION_MODE:
+            rotate_mesh(key);
+            break;
+        case SCALE_MODE:
+            scale_mesh(key);
+            break;
+    }
+}
+
+void MeshViewer::translate_mesh(unsigned short key) {
+    switch (key) {
+        case KEY_UP:
+            scene_mesh.translate(AXIS_Y * translation_proportion);
+            break;
+        case KEY_DOWN:
+            scene_mesh.translate(AXIS_Y * -translation_proportion);
+            break;
+        case KEY_RIGHT:
+            scene_mesh.translate(AXIS_X * translation_proportion);
+            break;
+        case KEY_LEFT:
+            scene_mesh.translate(AXIS_X * -translation_proportion);
+            break;
+        case KEY_A:
+            scene_mesh.translate(AXIS_Z * translation_proportion);
+            break;
+        case KEY_D:
+            scene_mesh.translate(AXIS_Z * -translation_proportion);
+            break;
+    }
+}
+
+void MeshViewer::rotate_mesh(unsigned short key) {
+    switch (key) {
+        case KEY_UP:
+            scene_mesh.rotate(10.0f, AXIS_X);
+            break;
+        case KEY_DOWN:
+            scene_mesh.rotate(-10.0f, AXIS_X);
+            break;
+        case KEY_RIGHT:
+            scene_mesh.rotate(10.0f, AXIS_Y);
+            break;
+        case KEY_LEFT:
+            scene_mesh.rotate(-10.0f, AXIS_Y);
+            break;
+        case KEY_A:
+            scene_mesh.rotate(10.0f, AXIS_Z);
+            break;
+        case KEY_D:
+            scene_mesh.rotate(-10.0f, AXIS_Z);
+            break;
+    }
+}
+
+void MeshViewer::scale_mesh(unsigned short key) {
+    switch (key) {
+        case KEY_UP:
+            scene_mesh.scale(AXIS_Y * 0.1f);
+            break;
+        case KEY_DOWN:
+            scene_mesh.scale(AXIS_Y * -0.1f);
+            break;
+        case KEY_RIGHT:
+            scene_mesh.scale(AXIS_X * 0.1f);
+            break;
+        case KEY_LEFT:
+            scene_mesh.scale(AXIS_X * -0.1f);
+            break;
+        case KEY_A:
+            scene_mesh.scale(AXIS_Z * 0.1f);
+            break;
+        case KEY_D:
+            scene_mesh.scale(AXIS_Z * -0.1f);
+            break;
+    }
 }

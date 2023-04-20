@@ -22,6 +22,8 @@ class MeshViewer {
     int win_width;
     int win_height;
 
+    glm::vec4 background_color;
+
     /** Time control */
     int old_time;
     int delta_time;
@@ -38,6 +40,7 @@ class MeshViewer {
 
     /** Scene mesh */
     SceneMesh scene_mesh;
+    float translation_proportion;
 
     /** Camera */
     glm::vec3 camera_position;
@@ -74,4 +77,11 @@ class MeshViewer {
     void loadResources(const char* mesh_file, const char* vtx_file, const char* frag_file);
 
     void fit_view_projection();
+
+    // Control methods
+    void switch_visual_mode();
+    void transform_mesh(unsigned short key);
+    void translate_mesh(unsigned short key);
+    void rotate_mesh(unsigned short key);
+    void scale_mesh(unsigned short key);
 };

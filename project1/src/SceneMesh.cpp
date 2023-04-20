@@ -18,29 +18,23 @@ SceneMesh::SceneMesh() {
     bound_box_max = vec3{ min_float, min_float, min_float };
     bound_box_min = vec3{ max_float, max_float, max_float };
 
-    transformation = mat4{ 1.0f };
-
-    scene = nullptr;
-    root_node = nullptr;
-
-    position = vec3{ 0.0f, 0.0f, 0.0f };
-    rotation = vec3{ 0.0f, 0.0f, 0.0f };
-    _scale = vec3{ 1.0f, 1.0f, 1.0f };
+    _translation = vec3{0.0f, 0.0f, 0.0f};
+    _rotation = vec3{0.0f, 0.0f, 0.0f};
+    _scale = vec3{1.0f, 1.0f, 1.0f};
 
     translation_mat = mat4{ 1.0f };
-    rotation_x_mat = mat4{ 1.0f };
-    rotation_y_mat = mat4{ 1.0f };
-    rotation_z_mat = mat4{ 1.0f };
+    rotation_mat = mat4{ 1.0f };
     scale_mat = mat4{ 1.0f };
+    transformation_mat = mat4{ 1.0f };
+
+    scene = nullptr;
 }
 
 void SceneMesh::load(const char* mesh_path) {
     cout << "Reading mesh from file: " << mesh_path << endl;
-    // http://assimp.sourceforge.net/lib_html/postprocess_8h.html (See: aiPostProcessSteps) (Flag options)
     scene = importer.ReadFile(mesh_path, ASSIMP_PROCESSING_FLAGS);
 
     load_model();
-    // load_model_cout_console();
 }
 
 void SceneMesh::load_model() {
@@ -83,87 +77,6 @@ void SceneMesh::load_model() {
         }
 
         center = (bound_box_max + bound_box_min) / 2.0f;
-    }
-}
-
-void SceneMesh::load_model_cout_console() {
-    // Briefly looking at the node structure
-    // ------------------------------------------------
-    if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
-        cout << "Assimp importer.ReadFile (Error) -- " << importer.GetErrorString() << "\n";
-    else {
-        num_meshes = scene->mNumMeshes;
-        mesh_list.resize(num_meshes);
-
-        cout << "\n\n   Start of Assimp Loading Meshes & Analysis";
-        cout << "\n   -----------------------------------------";
-
-        root_node = scene->mRootNode;
-
-        cout << "\n   node->mNumMeshes: " << root_node->mNumMeshes;
-        cout << "\n   node->mName.C_Str(): " << root_node->mName.C_Str();
-        cout << "\n\n   node->mNumChildren: " << root_node->mNumChildren;
-        // ------------------------------------------------------------------------------------------
-        for (unsigned int i = 0; i < root_node->mNumChildren; ++i) {
-            cout << "\n   node->mChildren[i]->mName.C_Str(): " << root_node->mChildren[i]->mName.C_Str();
-            cout << "\n   node->mChildren[i]->mNumMeshes: " << root_node->mChildren[i]->mNumMeshes;
-        }
-
-        aiMesh* mesh{};
-
-        int total_num_indices = 0;
-
-        // (1) Loop through all the model's meshes
-        // -----------------------------------------------------
-        cout << "\n   scene->mNumMeshes: " << num_meshes;
-        cout << "\n   ********************\n";
-        // ---------------------------------------------------------
-        for (unsigned int i = 0; i < num_meshes; ++i)   // In this case... scene->mNumMeshes = node->mChildren[i]->mNumMeshes
-        {
-            mesh = scene->mMeshes[i];   // http://assimp.sourceforge.net/lib_html/structai_mesh.html
-
-            cout << "\n   mesh->mName.C_Str(): " << mesh->mName.C_Str();
-            cout << "\n   Mesh index: " << i << " (mesh->mNumVertices: " << mesh->mNumVertices << ")";
-            cout << "\n   ------------------------------------- ";
-
-            // (2) Loop through all mesh [i]'s vertices
-            // ---------------------------------------------------
-            for (unsigned int i2 = 0; i2 < mesh->mNumVertices; ++i2) {
-                vec3 position(mesh->mVertices[i2].x, mesh->mVertices[i2].y, mesh->mVertices[i2].z);
-                mesh_list[i].vert_positions.push_back(position);
-
-                cout << "\n   Count: " << i2;
-                cout << "\n   mesh->mVertices[" << i2 << "].x: " << position.x;
-                cout << "\n   mesh->mVertices[" << i2 << "].y: " << position.y;
-                cout << "\n   mesh->mVertices[" << i2 << "].z: " << position.z;
-
-                if (mesh->HasNormals()) {
-                    vec3 normal(mesh->mNormals[i2].x, mesh->mNormals[i2].y, mesh->mNormals[i2].z);
-                    mesh_list[i].vert_normals.push_back(normal);
-                    cout << "\n   mesh->mNormals[" << i2 << "] X: " << normal.x << " Y: " << normal.y << " Z: " << normal.z;
-                } else
-                    mesh_list[i].vert_normals.push_back(vec3(0.0f, 0.0f, 0.0f));
-            }
-            cout << "\n\n   mesh->mNumFaces: " << mesh->mNumFaces << "\n";
-            cout << "   ------------------ ";
-
-            // (3) Loop through all mesh [i]'s Indices
-            // --------------------------------------------------
-            for (unsigned int i3 = 0; i3 < mesh->mNumFaces; ++i3) {
-                cout << "\n";
-                for (unsigned int i4 = 0; i4 < mesh->mFaces[i3].mNumIndices; ++i4) {
-                    cout << "   mesh->mFaces[" << i3 << "].mIndices[" << i4 << "]: " << mesh->mFaces[i3].mIndices[i4] << "\n";
-                    mesh_list[i].vert_indices.push_back(mesh->mFaces[i3].mIndices[i4]);
-                    ++total_num_indices;
-                }
-            }
-            cout << "\n   Total number of indices: " << total_num_indices;
-            cout << "\n   **************************";
-            total_num_indices = 0;
-            cout << "\n   *****************************************************\n\n";
-
-            set_buffer_data(i);   // Set up: VAO, VBO and EBO.
-        }
     }
 }
 
@@ -210,45 +123,31 @@ void SceneMesh::set_buffer_data(unsigned int index) {
 }
 
 void SceneMesh::translate(glm::vec3 translation) {
-    position += translation;
-    translation_mat = glm::translate(mat4(1.0f), position);
+    _translation += translation;
+    translation_mat = glm::translate(translation_mat, translation);
     update_transformation();
 }
 
-void SceneMesh::rotate_x(float angles) {
-    rotation.x += angles;
-    mat4 mat = glm::translate(mat4(1.0f), center);
-    mat = rotate(mat, radians(rotation.x), vec3(1.0f, 0.0f, 0.0f));
-    rotation_x_mat = glm::translate(mat, -center);
+void SceneMesh::rotate(float degrees, glm::vec3 axis) {
+    _rotation += axis * degrees;
+    mat4 from_center = glm::translate(mat4{1.0f}, -center);
+    mat4 rot = glm::rotate(mat4{1.0f}, radians(degrees), axis);
+    mat4 to_center = glm::translate(mat4{1.0f}, center);
+    rotation_mat = to_center * rot * from_center * rotation_mat;
     update_transformation();
 }
 
-void SceneMesh::rotate_y(float angles) {
-    rotation.y += angles;
-    mat4 mat = glm::translate(mat4(1.0f), center);
-    mat = rotate(mat, radians(rotation.y), vec3(0.0f, 1.0f, 0.0f));
-    rotation_y_mat = glm::translate(mat, -center);
-    update_transformation();
-}
-
-void SceneMesh::rotate_z(float angles) {
-    rotation.z += angles;
-    mat4 mat = glm::translate(mat4(1.0f), center);
-    mat = rotate(mat, radians(rotation.z), vec3(0.0f, 0.0f, 1.0f));
-    rotation_z_mat = glm::translate(mat, -center);
-    update_transformation();
-}
-
-void SceneMesh::scale(glm::vec3 scale_increment) {
-    _scale += scale_increment;
-    mat4 mat = glm::translate(mat4(1.0f), center);
-    mat = glm::scale(mat, _scale);
-    scale_mat = glm::translate(mat, -center);
+void SceneMesh::scale(glm::vec3 scale) {
+    _scale += scale;
+    mat4 from_center = glm::translate(mat4{1.0f}, -center);
+    mat4 _scale_mat = glm::scale(mat4{1.0f}, _scale);
+    mat4 to_center = glm::translate(mat4{1.0f}, center);
+    scale_mat = to_center * _scale_mat * from_center;
     update_transformation();
 }
 
 void SceneMesh::update_transformation() {
-    transformation = translation_mat * rotation_z_mat * rotation_y_mat * rotation_x_mat * scale_mat;
+    transformation_mat = translation_mat * rotation_mat * scale_mat;
 }
 
 unsigned int SceneMesh::getNumMeshes() const { return num_meshes; }
@@ -256,4 +155,4 @@ std::vector<Mesh> SceneMesh::getMeshList() const { return mesh_list; }
 glm::vec3 SceneMesh::getCenter() const { return center; }
 glm::vec3 SceneMesh::getBoundBoxMax() const { return bound_box_max; }
 glm::vec3 SceneMesh::getBoundBoxMin() const { return bound_box_min; }
-glm::mat4 SceneMesh::getTransformation() const { return transformation; }
+glm::mat4 SceneMesh::getTransformation() const { return transformation_mat; }
