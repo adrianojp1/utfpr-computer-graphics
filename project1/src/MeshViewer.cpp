@@ -150,7 +150,7 @@ void MeshViewer::fit_view_projection() {
     camera_position = scene_mesh.getCenter();
     camera_position.z = camera_distance;
 
-    projection_far = scene_depth * 100;
+    projection_far = scene_depth * 100 + camera_distance;
     view = lookAt(camera_position, camera_target, up_vec);
     projection = perspective(radians(projection_fovy), (GLfloat)win_width / win_height, projection_near, projection_far);
 
