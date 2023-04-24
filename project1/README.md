@@ -1,3 +1,9 @@
-TODO:
-- escalar objeto ao invés de afastar camera
-- limpar código
+# Project 1 - Mesh Viewer
+
+A simple C++ mesh viewer that reads .obj files and render on screen using OpenGL. It implements translation, scale and rotation on x, y and z axis.
+
+## Required libs
+- GLEW
+- FreeGlut
+- GLM
+- Assimp

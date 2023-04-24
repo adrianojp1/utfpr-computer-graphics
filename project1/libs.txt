@@ -1,5 +1,0 @@
-Biblioteca inclusas no projeto:
-- GLEW
-- FreeGlut
-- GLM
-- Assimp
