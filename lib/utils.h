@@ -4,12 +4,14 @@
  *
  * Defines a set of util frequently used functions.
  *
- * @author Ricardo Dutra da Silva
+ * @author Ricardo Dutra da Silva, Adriano Jose Paulichi
  */
 
 #include <iostream>
+#include <vector>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
+#include <glm/glm.hpp>
 
 
 /** 
@@ -33,3 +35,10 @@ int createShaderProgram(const char *, const char *);
  */
 const char *readFile(const char *);
 
+void printVector(std::vector<float> v);
+void printVector(std::vector<glm::vec2> v);
+void printArray(float *arr, int size);
+
+void toGlCoords(float win_x, float win_y, float* gl_x, float* gl_y, int win_width, int win_height);
+
+void copyRepeatedTo(float* elem, int stride, float* out, int first, int count);
