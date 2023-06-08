@@ -1,3 +1,5 @@
+#pragma once
+
 /**
  * @file utils.h
  * Util functions.

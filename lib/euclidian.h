@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <glm/glm.hpp>
 
@@ -19,3 +21,5 @@ std::vector<glm::vec2> to2DVector(float* in, int size);
 void to3DPointer(std::vector<glm::vec2> v, float* out, int* size, float z);
 
 std::vector<glm::vec2> suthHodgClip(std::vector<glm::vec2> poly, std::vector<glm::vec2> clipper);
+
+std::vector<glm::ivec2> midPointCircleDraw(glm::ivec2 c, int r);

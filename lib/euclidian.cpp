@@ -136,3 +136,60 @@ vector<vec2> suthHodgClip(vector<vec2> poly, vector<vec2> clipper) {
 
     return clipped;
 }
+
+// https://www.geeksforgeeks.org/mid-point-circle-drawing-algorithm/
+vector<ivec2> midPointCircleDraw(ivec2 c, int r) {
+    vector<ivec2> points;
+    int x = r, y = 0;
+
+    // Adding the initial point on the axes after translation
+    points.push_back(ivec2(c.x + r, c.y));
+
+    // When radius is zero only a single point will be added
+    if (r > 0) {
+        points.push_back(ivec2(c.x - r, c.y));
+        points.push_back(ivec2(c.x, c.y + r));
+        points.push_back(ivec2(c.x, c.y - r));
+    }
+
+    // p = (x — 0.5)^2 + (y + 1)^2 – r^2
+    int p = 1 - r;
+    while (x > y) {
+        y++;
+
+        if (p <= 0) {
+            // Mid-point is inside or on the perimeter
+            // p = p + 2(y + 1) + 1
+            p = p + 2 * y + 1;
+
+        } else {
+            // Mid-point is outside the perimeter
+            // p = p + 2(y + 1) – 2(x – 1) + 1
+            x--;
+            p = p + 2 * y - 2 * x + 1;
+        }
+
+        // All the perimeter points have already been added
+        if (x < y) {
+            break;
+        }
+
+        // Adding the generated point and its reflection
+        // in the other octants after translation
+        points.push_back(ivec2(c.x + x, c.y + y));
+        points.push_back(ivec2(c.x - x, c.y + y));
+        points.push_back(ivec2(c.x + x, c.y - y));
+        points.push_back(ivec2(c.x - x, c.y - y));
+
+        // If the generated point is on the line x = y then
+        // the perimeter points have already been Added
+        if (x != y) {
+            points.push_back(ivec2(c.x + y, c.y + x));
+            points.push_back(ivec2(c.x - y, c.y + x));
+            points.push_back(ivec2(c.x + y, c.y - x));
+            points.push_back(ivec2(c.x - y, c.y - x));
+        }
+    }
+
+    return points;
+}
