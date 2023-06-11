@@ -58,13 +58,17 @@ MeshViewer* MeshViewer::instance() {
 void MeshViewer::init(int argc, char** argv) {
     // Check .obj file argument
     if (argc < 2) {
-        cerr << "Mesh file (.obj) path must be given!" << endl;
+        cerr << "Usage: ./mesh2 object.obj texture.ext normal_map.ext2" << endl;
         exit(-1);
     }
     const char* mesh_filename = argv[1];
+    // const char* texture_filename = argv[2];
+    // const char* normal_map_filename = argv[3];
+    const char* texture_filename = "";
+    const char* normal_map_filename = "";
 
     // Init MeshViewer attributes
-    init_attributes();
+    initAttributes();
 
     // Init window
     glutInit(&argc, argv);
@@ -76,7 +80,7 @@ void MeshViewer::init(int argc, char** argv) {
     glewInit();
 
     // Load resource files
-    loadResources(mesh_filename, vtx_filename, frag_filename);
+    loadResources(mesh_filename, texture_filename, normal_map_filename);
 
     // Register callbacks
     glutReshapeFunc(reshape);
@@ -91,7 +95,7 @@ void MeshViewer::init(int argc, char** argv) {
     glutMainLoop();
 }
 
-void MeshViewer::init_attributes() {
+void MeshViewer::initAttributes() {
     /** Window size */
     win_width = 800;
     win_height = 800;
@@ -105,11 +109,13 @@ void MeshViewer::init_attributes() {
 
     /** Modes */
     transform_mode = TRANSLATION_MODE;
-    visual_mode = FACES_MODE;
+    polygon_mode = FACES_MODE;
+    color_mode = LIGHTNING_MODE;
 
     /** Shaders */
-    vtx_filename = "./shaders/vtx.glsl";
-    frag_filename = "./shaders/frag.glsl";
+    shaders.push_back(new Shader("./shaders/light_vtx.glsl", "./shaders/light_frag.glsl"));
+    shaders.push_back(new Shader("./shaders/text_vtx.glsl", "./shaders/text_frag.glsl"));
+    shaders.push_back(new Shader("./shaders/text_vtx.glsl", "./shaders/text_frag.glsl"));
 
     /** Camera */
     camera_position = vec3{ 0.0f, 0.0f, 0.0f };
@@ -122,25 +128,26 @@ void MeshViewer::init_attributes() {
     /** Projection */
     projection_fovy = 45.0f;
     projection_near = 0.1f;
-    projection_far = 1.0f;
 
     model = mat4{ 1.0f };
     view = mat4{ 1.0f };
     projection = mat4{ 1.0f };
 }
 
-void MeshViewer::loadResources(const char* mesh_file, const char* vtx_file, const char* frag_file) {
+void MeshViewer::loadResources(const char* mesh_file, const char* texture_file, const char* normal_map_file) {
     // Load mesh
     scene_mesh.load(mesh_file);
 
-    fit_view_projection();
+    fitViewProjection();
 
-    // Create shaders
-    shader.loadAndCreateShader(vtx_file, frag_file);
-    shader.use();
+    // Load shaders
+     for (Shader* s : shaders) {
+        s->load();
+    }
+    changeColorMode(color_mode);
 }
 
-void MeshViewer::fit_view_projection() {
+void MeshViewer::fitViewProjection() {
     vec3 scene_box_size = scene_mesh.getBoundBoxMax() - scene_mesh.getBoundBoxMin();
     float scene_front_size = std::max(scene_box_size.x, scene_box_size.y);
     float scene_depth = scene_box_size.z;
@@ -153,7 +160,7 @@ void MeshViewer::fit_view_projection() {
     camera_position = scene_mesh.getCenter();
     camera_position.z = camera_distance;
 
-    projection_far = scene_depth * 100 + camera_distance;
+    float projection_far = scene_depth * 100 + camera_distance;
     view = lookAt(camera_position, camera_target, up_vec);
     projection = perspective(radians(projection_fovy), (GLfloat)win_width / win_height, projection_near, projection_far);
 
@@ -167,20 +174,26 @@ void MeshViewer::_display() {
     glClearColor(background_color.r, background_color.g, background_color.b, background_color.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    int shader_id = shaders[color_mode]->getId();
+
+    switch (color_mode) {
+        case LIGHTNING_MODE:
+            bindLightMode(shader_id);
+            break;
+        case TEXTURE_MODE:
+            bindTextMode(shader_id);
+            break;
+        case TEXTURE_NORMAL_MODE:
+            bindTextNormalMode(shader_id);
+            break;
+    }
+    
     model = scene_mesh.getTransformation();
 
-    unsigned int object_color_loc = glGetUniformLocation(shader.getId(), "object_color");
-    unsigned int light_color_loc = glGetUniformLocation(shader.getId(), "light_color");
-    unsigned int light_position_loc = glGetUniformLocation(shader.getId(), "light_position");
-    unsigned int camera_position_loc = glGetUniformLocation(shader.getId(), "camera_position");
-    unsigned int model_loc = glGetUniformLocation(shader.getId(), "model");
-    unsigned int view_loc = glGetUniformLocation(shader.getId(), "view");
-    unsigned int projection_loc = glGetUniformLocation(shader.getId(), "projection");
+    unsigned int model_loc = glGetUniformLocation(shader_id, "model");
+    unsigned int view_loc = glGetUniformLocation(shader_id, "view");
+    unsigned int projection_loc = glGetUniformLocation(shader_id, "projection");
 
-    glUniform3f(object_color_loc, 0.7f, 0.7f, 0.0f);
-    glUniform3f(light_color_loc, light_color.x, light_color.y, light_color.z);
-    glUniform3f(light_position_loc, light_position.x, light_position.y, light_position.z);
-    glUniform3f(camera_position_loc, camera_position.x, camera_position.y, camera_position.z);
     glUniformMatrix4fv(model_loc, 1, GL_FALSE, value_ptr(model));
     glUniformMatrix4fv(view_loc, 1, GL_FALSE, value_ptr(view));
     glUniformMatrix4fv(projection_loc, 1, GL_FALSE, value_ptr(projection));
@@ -198,6 +211,24 @@ void MeshViewer::_display() {
     old_time = cur_time;
 }
 
+void MeshViewer::bindLightMode(int shader_id) {
+    unsigned int object_color_loc = glGetUniformLocation(shader_id, "object_color");
+    unsigned int light_color_loc = glGetUniformLocation(shader_id, "light_color");
+    unsigned int light_position_loc = glGetUniformLocation(shader_id, "light_position");
+    unsigned int camera_position_loc = glGetUniformLocation(shader_id, "camera_position");
+
+    glUniform3f(object_color_loc, 0.7f, 0.7f, 0.0f);
+    glUniform3f(light_color_loc, light_color.r, light_color.g, light_color.b);
+    glUniform3f(light_position_loc, light_position.x, light_position.y, light_position.z);
+    glUniform3f(camera_position_loc, camera_position.x, camera_position.y, camera_position.z);
+}
+
+void MeshViewer::bindTextMode(int shader_id) {
+}
+
+void MeshViewer::bindTextNormalMode(int shader_id) {
+}
+
 void MeshViewer::_reshape(int width, int height) {
     win_width = width;
     win_height = height;
@@ -211,6 +242,15 @@ void MeshViewer::_keyboard(unsigned char key, int x, int y) {
         case 'q':
             glutLeaveMainLoop();
             break;
+        case '1':
+            changeColorMode(LIGHTNING_MODE);
+            break;
+        case '2':
+            changeColorMode(TEXTURE_MODE);
+            break;
+        case '3':
+            changeColorMode(TEXTURE_NORMAL_MODE);
+            break;
         case 't':
             transform_mode = TRANSLATION_MODE;
             break;
@@ -221,13 +261,13 @@ void MeshViewer::_keyboard(unsigned char key, int x, int y) {
             transform_mode = SCALE_MODE;
             break;
         case 'v':
-            switch_visual_mode();
+            switchPolygonMode();
             break;
         case 'a':
-            transform_mesh(KEY_A);
+            transformMesh(KEY_A);
             break;
         case 'd':
-            transform_mesh(KEY_D);
+            transformMesh(KEY_D);
             break;
     }
 
@@ -237,16 +277,16 @@ void MeshViewer::_keyboard(unsigned char key, int x, int y) {
 void MeshViewer::_specialKeys(int key, int x, int y) {
     switch (key) {
         case GLUT_KEY_UP:
-            transform_mesh(KEY_UP);
+            transformMesh(KEY_UP);
             break;
         case GLUT_KEY_DOWN:
-            transform_mesh(KEY_DOWN);
+            transformMesh(KEY_DOWN);
             break;
         case GLUT_KEY_RIGHT:
-            transform_mesh(KEY_RIGHT);
+            transformMesh(KEY_RIGHT);
             break;
         case GLUT_KEY_LEFT:
-            transform_mesh(KEY_LEFT);
+            transformMesh(KEY_LEFT);
             break;
     }
 }
@@ -255,31 +295,39 @@ void MeshViewer::_idle() {
     glutPostRedisplay();
 }
 
-void MeshViewer::switch_visual_mode() {
-    if (visual_mode == FACES_MODE) {
-        visual_mode = WIREFRAME_MODE;
+void MeshViewer::changeColorMode(unsigned short mode) {
+    color_mode = mode;
+    shaders[color_mode]->use();
+    cout << "Color mode set to " << color_mode << ", shader " << shaders[color_mode]->getId() << endl;
+}
+
+void MeshViewer::switchPolygonMode() {
+    if (polygon_mode == FACES_MODE) {
+        polygon_mode = WIREFRAME_MODE;
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        cout << "Polygon mode set to wireframe" << endl;
     } else {
-        visual_mode = FACES_MODE;
+        polygon_mode = FACES_MODE;
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        cout << "Polygon mode set to faces" << endl;
     }
 }
 
-void MeshViewer::transform_mesh(unsigned short key) {
+void MeshViewer::transformMesh(unsigned short key) {
     switch (transform_mode) {
         case TRANSLATION_MODE:
-            translate_mesh(key);
+            translateMesh(key);
             break;
         case ROTATION_MODE:
-            rotate_mesh(key);
+            rotateMesh(key);
             break;
         case SCALE_MODE:
-            scale_mesh(key);
+            scaleMesh(key);
             break;
     }
 }
 
-void MeshViewer::translate_mesh(unsigned short key) {
+void MeshViewer::translateMesh(unsigned short key) {
     switch (key) {
         case KEY_UP:
             scene_mesh.translate(AXIS_Y * translation_proportion);
@@ -302,7 +350,7 @@ void MeshViewer::translate_mesh(unsigned short key) {
     }
 }
 
-void MeshViewer::rotate_mesh(unsigned short key) {
+void MeshViewer::rotateMesh(unsigned short key) {
     switch (key) {
         case KEY_UP:
             scene_mesh.rotate(10.0f, AXIS_X);
@@ -325,7 +373,7 @@ void MeshViewer::rotate_mesh(unsigned short key) {
     }
 }
 
-void MeshViewer::scale_mesh(unsigned short key) {
+void MeshViewer::scaleMesh(unsigned short key) {
     switch (key) {
         case KEY_UP:
             scene_mesh.scale(AXIS_Y * 0.1f);

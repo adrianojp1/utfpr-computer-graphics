@@ -6,6 +6,49 @@
 
 using namespace std;
 
+Shader::Shader(const char* vtx_filename, const char* frag_filename) {
+    this->vtx_filename = vtx_filename;
+    this->frag_filename = frag_filename;
+}
+
+void Shader::load() {
+    const char* vertex_code = readFile(vtx_filename);
+    const char* fragment_code = readFile(frag_filename);
+
+    // Request a program and shader slots from GPU
+    id = createShaderProgram(vertex_code, fragment_code);
+    cout << "Shader " << id << " loaded with files: " << vtx_filename << ", " << frag_filename << endl;
+}
+
+void Shader::use() {
+    glUseProgram(id);
+}
+
+int Shader::getId() const {
+    return id;
+}
+
+const char* Shader::readFile(const char* filename) {
+    FILE* inputFile;
+    if ((inputFile = fopen(filename, "r")) == NULL) {
+        cerr << "Error - Unable to open " << filename << endl;
+        exit(-1);
+    }
+
+    fseek(inputFile, 0, SEEK_END);
+    long length = ftell(inputFile);
+    fseek(inputFile, 0, SEEK_SET);
+
+    char* buffer = (char*)malloc(length + 1);
+    buffer[length] = '\0';
+    fread(buffer, 1, length, inputFile);
+    fclose(inputFile);
+
+    cout << "Shader file read: " << filename << endl;
+
+    return buffer;
+}
+
 int Shader::createShaderProgram(const char* vertex_code, const char* fragment_code) {
     int success;
     char error[512];
@@ -53,41 +96,4 @@ int Shader::createShaderProgram(const char* vertex_code, const char* fragment_co
     glDeleteShader(fragment);
 
     return program;
-}
-
-const char* Shader::readFile(const char* filename) {
-    FILE* inputFile;
-    if ((inputFile = fopen(filename, "r")) == NULL) {
-        cerr << "Error - Unable to open " << filename << endl;
-        exit(-1);
-    }
-
-    fseek(inputFile, 0, SEEK_END);
-    long length = ftell(inputFile);
-    fseek(inputFile, 0, SEEK_SET);
-
-    char* buffer = (char*)malloc(length + 1);
-    buffer[length] = '\0';
-    fread(buffer, 1, length, inputFile);
-    fclose(inputFile);
-
-    cout << "Shader file read: " << filename << endl;
-
-    return buffer;
-}
-
-void Shader::loadAndCreateShader(const char* vtx_filename, const char* frag_filename) {
-    const char* vertex_code = readFile(vtx_filename);
-    const char* fragment_code = readFile(frag_filename);
-
-    // Request a program and shader slots from GPU
-    id = createShaderProgram(vertex_code, fragment_code);
-}
-
-void Shader::use() {
-    glUseProgram(id);
-}
-
-int Shader::getId() const {
-    return id;
 }

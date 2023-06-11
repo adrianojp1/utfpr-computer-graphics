@@ -1,6 +1,6 @@
 /**
  * Based on https://www.programmingcreatively.com/opengl-tutorial-5-qs.php
-*/
+ */
 
 #pragma once
 
@@ -24,11 +24,10 @@ struct Mesh {
 
 class SceneMesh {
    private:
-
     // Assimp attributes
     Assimp::Importer importer;
     const aiScene* scene;
-    
+
     // Mesh attributes
     unsigned int num_meshes;
     std::vector<Mesh> mesh_list;
@@ -67,8 +66,8 @@ class SceneMesh {
 
    private:
     // Load methods
-    void load_model();
-    void update_scene_bound_box(aiAABB bound_box);
-    void set_buffer_data(unsigned int index);
-    void update_transformation();
+    void loadModel();
+    void updateSceneBoundBox(aiAABB bound_box);
+    void setBufferData(unsigned int index);
+    void updateTransformation();
 };

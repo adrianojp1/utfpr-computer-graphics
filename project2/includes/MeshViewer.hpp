@@ -10,9 +10,14 @@
 #define ROTATION_MODE 1
 #define SCALE_MODE 2
 
-// Visualization modes
+// Polygon modes
 #define FACES_MODE 0
 #define WIREFRAME_MODE 1
+
+// Color modes
+#define LIGHTNING_MODE 0
+#define TEXTURE_MODE 1
+#define TEXTURE_NORMAL_MODE 2
 
 class MeshViewer {
    private:
@@ -31,12 +36,11 @@ class MeshViewer {
 
     /** Modes */
     short transform_mode;
-    short visual_mode;
+    short polygon_mode;
+    short color_mode;
 
     /** Shaders */
-    const char* vtx_filename;
-    const char* frag_filename;
-    Shader shader;
+    std::vector<Shader*> shaders;
 
     /** Scene mesh */
     SceneMesh scene_mesh;
@@ -54,7 +58,6 @@ class MeshViewer {
     /** Projection */
     float projection_fovy;
     float projection_near;
-    float projection_far;
 
     /** MVP Matrices */
     glm::mat4 model;
@@ -76,16 +79,21 @@ class MeshViewer {
    private:
     MeshViewer(){};
 
-    void init_attributes();
+    void initAttributes();
 
-    void loadResources(const char* mesh_file, const char* vtx_file, const char* frag_file);
+    void loadResources(const char* mesh_file, const char* texture_file, const char* normal_map_file);
 
-    void fit_view_projection();
+    void fitViewProjection();
+
+    void bindLightMode(int shader_id);
+    void bindTextMode(int shader_id);
+    void bindTextNormalMode(int shader_id);
 
     // Control methods
-    void switch_visual_mode();
-    void transform_mesh(unsigned short key);
-    void translate_mesh(unsigned short key);
-    void rotate_mesh(unsigned short key);
-    void scale_mesh(unsigned short key);
+    void changeColorMode(unsigned short mode);
+    void switchPolygonMode();
+    void transformMesh(unsigned short key);
+    void translateMesh(unsigned short key);
+    void rotateMesh(unsigned short key);
+    void scaleMesh(unsigned short key);
 };
