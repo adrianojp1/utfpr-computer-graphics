@@ -1,10 +1,12 @@
 #pragma once
 
+#include <iostream>
+
 class CubemapTexture {
    public:
-    CubemapTexture(const char* filename);
+    CubemapTexture(const std::string filename);
 
-    void load();
+    void load(bool flat);
 
     void use();
 
@@ -16,11 +18,19 @@ class CubemapTexture {
     int face_side;
     int n_channels;
 
-    unsigned char** loadFaces();
    private:
-    const char* filename;
+    std::string filename;
 
     unsigned int id;
 
+    unsigned int color_format;
+
+    void loadFlat();
+    unsigned char* loadFace();
+
+    void loadCube();
+    unsigned char** loadFaces();
     void copyToBuffer(unsigned char* data, unsigned char* buf, int y_px, int x_px);
+
+    void updateColorFormat();
 };

@@ -47,7 +47,7 @@ class SceneMesh {
    public:
     SceneMesh();
 
-    void load(const char* mesh_path);
+    void load(const std::string mesh_path);
 
     // Transformation
     void translate(glm::vec3 translation);

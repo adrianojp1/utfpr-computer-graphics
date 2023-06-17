@@ -61,10 +61,10 @@ void MeshViewer::init(int argc, char** argv) {
         cerr << "Usage: ./mesh2 object.obj texture.ext normal_map.ext2" << endl;
         exit(-1);
     }
-    const char* mesh_filename = argv[1];
-    const char* texture_filename = argv[2];
-    // const char* normal_map_filename = argv[3];
-    const char* normal_map_filename = "";
+    string mesh_filename = argv[1];
+    string texture_filename = argv[2];
+    // const string normal_map_filename = argv[3];
+    string normal_map_filename = "";
 
     // Init MeshViewer attributes
     initAttributes();
@@ -134,7 +134,7 @@ void MeshViewer::initAttributes() {
     projection = mat4{ 1.0f };
 }
 
-void MeshViewer::loadResources(const char* mesh_file, const char* texture_file, const char* normal_map_file) {
+void MeshViewer::loadResources(string mesh_file, string texture_file, string normal_map_file) {
     // Load mesh
     scene_mesh.load(mesh_file);
 
@@ -146,8 +146,9 @@ void MeshViewer::loadResources(const char* mesh_file, const char* texture_file, 
     }
     changeColorMode(color_mode);
 
+    bool is_flat = texture_file.find("flat") != string::npos;
     texture = new CubemapTexture(texture_file);
-    texture->load();
+    texture->load(is_flat);
     texture->use();
 }
 
@@ -194,9 +195,17 @@ void MeshViewer::_display() {
 
     model = scene_mesh.getTransformation();
 
+    unsigned int light_color_loc = glGetUniformLocation(shader_id, "light_color");
+    unsigned int light_position_loc = glGetUniformLocation(shader_id, "light_position");
+    unsigned int camera_position_loc = glGetUniformLocation(shader_id, "camera_position");
+
     unsigned int model_loc = glGetUniformLocation(shader_id, "model");
     unsigned int view_loc = glGetUniformLocation(shader_id, "view");
     unsigned int projection_loc = glGetUniformLocation(shader_id, "projection");
+
+    glUniform3f(light_color_loc, light_color.r, light_color.g, light_color.b);
+    glUniform3f(light_position_loc, light_position.x, light_position.y, light_position.z);
+    glUniform3f(camera_position_loc, camera_position.x, camera_position.y, camera_position.z);
 
     glUniformMatrix4fv(model_loc, 1, GL_FALSE, value_ptr(model));
     glUniformMatrix4fv(view_loc, 1, GL_FALSE, value_ptr(view));
@@ -217,18 +226,12 @@ void MeshViewer::_display() {
 
 void MeshViewer::bindLightMode(int shader_id) {
     unsigned int object_color_loc = glGetUniformLocation(shader_id, "object_color");
-    unsigned int light_color_loc = glGetUniformLocation(shader_id, "light_color");
-    unsigned int light_position_loc = glGetUniformLocation(shader_id, "light_position");
-    unsigned int camera_position_loc = glGetUniformLocation(shader_id, "camera_position");
-
     glUniform3f(object_color_loc, 0.7f, 0.7f, 0.0f);
-    glUniform3f(light_color_loc, light_color.r, light_color.g, light_color.b);
-    glUniform3f(light_position_loc, light_position.x, light_position.y, light_position.z);
-    glUniform3f(camera_position_loc, camera_position.x, camera_position.y, camera_position.z);
 }
 
 void MeshViewer::bindTextMode(int shader_id) {
     vec3 object_center = scene_mesh.getCenter();
+
     unsigned int object_center_loc = glGetUniformLocation(shader_id, "object_center");
     glUniform3f(object_center_loc, object_center.x, object_center.y, object_center.z);
 }

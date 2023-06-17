@@ -1,7 +1,7 @@
 #version 330 core
 
-in vec3 v_normal;
-in vec3 frag_position;
+in vec3 normal;
+in vec3 transf_frag_pos;
 
 uniform vec3 object_color;
 uniform vec3 light_color;
@@ -12,18 +12,18 @@ out vec4 frag_color;
 
 void main()
 {
-	float ka = 0.5;
+	float ka = 0.2;
     vec3 ambient = ka * light_color;
 
-    float kd = 0.7;
-    vec3 n = normalize(v_normal);
-    vec3 l = normalize(light_position - frag_position);
+    float kd = 0.8;
+    vec3 n = normalize(normal);
+    vec3 l = normalize(light_position - transf_frag_pos);
 
     float diff = max(dot(n,l), 0.0);
     vec3 diffuse = kd * diff * light_color;
 
     float ks = 1.0;
-    vec3 v = normalize(camera_position - frag_position);
+    vec3 v = normalize(camera_position - transf_frag_pos);
     vec3 r = reflect(-l, n);
 
     float spec = pow(max(dot(v, r), 0.0), 32);

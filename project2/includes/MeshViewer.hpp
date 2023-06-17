@@ -85,7 +85,7 @@ class MeshViewer {
 
     void initAttributes();
 
-    void loadResources(const char* mesh_file, const char* texture_file, const char* normal_map_file);
+    void loadResources(const std::string mesh_file, const std::string texture_file, const std::string normal_map_file);
 
     void fitViewProjection();
 

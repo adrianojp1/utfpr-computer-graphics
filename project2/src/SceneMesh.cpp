@@ -31,7 +31,7 @@ SceneMesh::SceneMesh() {
     scene = nullptr;
 }
 
-void SceneMesh::load(const char* mesh_path) {
+void SceneMesh::load(const string mesh_path) {
     cout << "Reading mesh from file: " << mesh_path << endl;
     scene = importer.ReadFile(mesh_path, ASSIMP_PROCESSING_FLAGS);
 
