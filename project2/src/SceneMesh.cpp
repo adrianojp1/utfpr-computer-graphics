@@ -1,14 +1,15 @@
 #include "SceneMesh.hpp"
-
 #include <GL/glew.h>
-
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <limits>
+#include <assimp/postprocess.h>
 
 using namespace std;
 using namespace glm;
+
+#define ASSIMP_PROCESSING_FLAGS aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_GenBoundingBoxes | aiProcess_GenSmoothNormals
 
 const float min_float = numeric_limits<float>::min();
 const float max_float = numeric_limits<float>::max();

@@ -57,14 +57,13 @@ MeshViewer* MeshViewer::instance() {
 
 void MeshViewer::init(int argc, char** argv) {
     // Check .obj file argument
-    if (argc < 2) {
+    if (argc < 3) {
         cerr << "Usage: ./mesh2 object.obj texture.ext normal_map.ext2" << endl;
         exit(-1);
     }
     const char* mesh_filename = argv[1];
-    // const char* texture_filename = argv[2];
+    const char* texture_filename = argv[2];
     // const char* normal_map_filename = argv[3];
-    const char* texture_filename = "";
     const char* normal_map_filename = "";
 
     // Init MeshViewer attributes
@@ -122,6 +121,7 @@ void MeshViewer::initAttributes() {
     camera_target = vec3{ 0.0f, 0.0f, 0.0f };
     up_vec = vec3{ 0.0f, 1.0f, 0.0f };
 
+    /** Light */
     light_color = vec3{ 1.0f, 1.0f, 1.0f };
     light_position = vec3{ 0.0f, 0.0f, 0.0f };
 
@@ -141,10 +141,14 @@ void MeshViewer::loadResources(const char* mesh_file, const char* texture_file, 
     fitViewProjection();
 
     // Load shaders
-     for (Shader* s : shaders) {
+    for (Shader* s : shaders) {
         s->load();
     }
     changeColorMode(color_mode);
+
+    texture = new CubemapTexture(texture_file);
+    texture->load();
+    texture->use();
 }
 
 void MeshViewer::fitViewProjection() {
@@ -187,7 +191,7 @@ void MeshViewer::_display() {
             bindTextNormalMode(shader_id);
             break;
     }
-    
+
     model = scene_mesh.getTransformation();
 
     unsigned int model_loc = glGetUniformLocation(shader_id, "model");
@@ -224,6 +228,9 @@ void MeshViewer::bindLightMode(int shader_id) {
 }
 
 void MeshViewer::bindTextMode(int shader_id) {
+    vec3 object_center = scene_mesh.getCenter();
+    unsigned int object_center_loc = glGetUniformLocation(shader_id, "object_center");
+    glUniform3f(object_center_loc, object_center.x, object_center.y, object_center.z);
 }
 
 void MeshViewer::bindTextNormalMode(int shader_id) {

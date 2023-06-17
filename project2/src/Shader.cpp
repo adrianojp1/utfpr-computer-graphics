@@ -44,8 +44,6 @@ const char* Shader::readFile(const char* filename) {
     fread(buffer, 1, length, inputFile);
     fclose(inputFile);
 
-    cout << "Shader file read: " << filename << endl;
-
     return buffer;
 }
 

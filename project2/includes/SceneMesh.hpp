@@ -4,14 +4,12 @@
 
 #pragma once
 
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
+#define AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE 60
 
+#include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <glm/glm.hpp>
 #include <vector>
-
-#define ASSIMP_PROCESSING_FLAGS aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_GenBoundingBoxes
 
 /** Single mesh data class */
 struct Mesh {

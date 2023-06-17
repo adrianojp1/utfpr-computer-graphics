@@ -4,6 +4,7 @@
 
 #include "SceneMesh.hpp"
 #include "Shader.hpp"
+#include "CubemapTexture.hpp"
 
 // Transformation modes
 #define TRANSLATION_MODE 0
@@ -54,6 +55,9 @@ class MeshViewer {
     /** Light */
     glm::vec3 light_color;
     glm::vec3 light_position;
+
+    /** Texture */
+    CubemapTexture* texture;
 
     /** Projection */
     float projection_fovy;
