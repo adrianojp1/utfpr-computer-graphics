@@ -28,8 +28,6 @@ class MeshViewer {
     int win_width;
     int win_height;
 
-    glm::vec4 background_color;
-
     /** Time control */
     int old_time;
     int delta_time;
@@ -55,6 +53,10 @@ class MeshViewer {
     /** Light */
     glm::vec3 light_color;
     glm::vec3 light_position;
+
+    /** Color */
+    glm::vec3 background_color;
+    glm::vec3 default_object_color;
 
     /** Texture */
     CubemapTexture* texture;
@@ -89,9 +91,9 @@ class MeshViewer {
 
     void fitViewProjection();
 
-    void bindLightMode(int shader_id);
-    void bindTextMode(int shader_id);
-    void bindTextNormalMode(int shader_id);
+    void bindLightMode(Shader* shader);
+    void bindTextMode(Shader* shader);
+    void bindTextNormalMode(Shader* shader);
 
     // Control methods
     void changeColorMode(unsigned short mode);

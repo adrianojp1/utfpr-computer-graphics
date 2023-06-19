@@ -1,5 +1,6 @@
 #include "CubemapTexture.hpp"
 #include <GL/glew.h>
+#include <fstream>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -13,170 +14,218 @@ using namespace std;
 #define FRONT_FACE 4
 #define BACK_FACE 5
 
-CubemapTexture::CubemapTexture(const string filename) {
-    this->filename = filename;
+CubemapTexture::CubemapTexture(const string text_file, const string normal_map_file, bool is_flat) {
+    this->is_flat = is_flat;
+    this->diffuse_map = new Texture();
+    this->diffuse_map->filename = text_file;
+
+    ifstream f(normal_map_file.c_str());
+    if (f.good()) {
+        this->normal_map = new Texture();
+        this->normal_map->filename = normal_map_file;
+    } else {
+        this->normal_map = NULL;
+    }
 }
 
-// Based on https://learnopengl.com/Advanced-OpenGL/Cubemaps
-void CubemapTexture::load(bool flat) {
-    glGenTextures(1, &id);
-    glActiveTexture(GL_TEXTURE0);
-    this->use();
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-    if (flat) {
-        loadFlat();
+void CubemapTexture::load() {
+    if (is_flat) {
+        if (loadFlat(this->diffuse_map)) {
+            cout << "Texture " << this->diffuse_map->id << " - Diffuse flat loaded: " << this->diffuse_map->filename << endl;
+        } else {
+            cerr << "Texture " << this->diffuse_map->id << " - Failed to load diffuse flat: " << this->diffuse_map->filename << endl;
+            exit(-1);
+        }
+        if (hasNormalMap()) {
+            if (loadFlat(this->normal_map)) {
+                cout << "Texture " << this->normal_map->id << " - Normal map flat loaded: " << this->normal_map->filename << endl;
+            } else {
+                cerr << "Texture " << this->normal_map->id << " - Failed to load normal map flat: " << this->diffuse_map->filename << endl;
+                exit(-1);
+            }
+        }
     } else {
-        loadCube();
+        if (loadCube(this->diffuse_map)) {
+            cout << "Texture " << this->diffuse_map->id << " - Diffuse cube loaded: " << this->diffuse_map->filename << endl;
+        } else {
+            cerr << "Texture " << this->diffuse_map->id << " - Failed to load diffuse cube: " << this->diffuse_map->filename << endl;
+            exit(-1);
+        }
+        if (hasNormalMap()) {
+            if (loadCube(this->normal_map)) {
+                cout << "Texture " << this->normal_map->id << " - Normal map cube loaded: " << this->diffuse_map->filename << endl;
+            } else {
+                cerr << "Texture " << this->normal_map->id << " - Failed to load normal map cube: " << this->diffuse_map->filename << endl;
+                exit(-1);
+            }
+        }
     }
 }
 
 void CubemapTexture::use() {
-    glBindTexture(GL_TEXTURE_CUBE_MAP, id);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->diffuse_map->id);
+
+    if (hasNormalMap()) {
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, this->normal_map->id);
+    }
 }
 
-int CubemapTexture::getId() const {
-    return id;
+bool CubemapTexture::hasNormalMap() {
+    return this->normal_map != NULL;
 }
 
-void CubemapTexture::loadFlat() {
-    unsigned char* im_data = loadFace();
+bool CubemapTexture::loadFlat(Texture* texture) {
+    glGenTextures(1, &texture->id);
+
+    unsigned char* im_data = loadFace(texture);
     if (im_data) {
+        glBindTexture(GL_TEXTURE_CUBE_MAP, texture->id);
+
         for (int i = 0; i < 6; i++) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, color_format, GL_UNSIGNED_BYTE, im_data);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, texture->face_width, texture->face_height, 0, texture->color_format, GL_UNSIGNED_BYTE, im_data);
         }
-        cout << "Flat texture loaded: " << filename << endl;
+        setTexParameters();
+
+        free(im_data);
+        return true;
 
     } else {
-        cerr << "Failed to load flat texture: " << filename << endl;
-        exit(-1);
+        return false;
     }
-    free(im_data);
 }
 
-unsigned char* CubemapTexture::loadFace() {
-    unsigned char* im_data = stbi_load(filename.c_str(), &width, &height, &n_channels, 0);
+unsigned char* CubemapTexture::loadFace(Texture* texture) {
+    unsigned char* im_data = stbi_load(texture->filename.c_str(), &texture->face_width, &texture->face_height, &texture->n_channels, 0);
 
     if (!im_data) {
         return NULL;
     }
-    updateColorFormat();
-
-    face_side = 0;
+    updateColorFormat(texture);
 
     return im_data;
 }
 
-void CubemapTexture::loadCube() {
-    unsigned char** textures_faces = loadFaces();
+bool CubemapTexture::loadCube(Texture* texture) {
+    glGenTextures(1, &texture->id);
+
+    unsigned char** textures_faces = loadFaces(texture);
     if (textures_faces) {
+        glBindTexture(GL_TEXTURE_CUBE_MAP, texture->id);
+
         for (int i = 0; i < 6; i++) {
             unsigned char* face_data = textures_faces[i];
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, face_side, face_side, 0, color_format, GL_UNSIGNED_BYTE, face_data);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, texture->face_width, texture->face_height, 0, texture->color_format, GL_UNSIGNED_BYTE, face_data);
         }
-        cout << "Cube texture loaded: " << filename << endl;
+        setTexParameters();
+
+        for (int i = 0; i < 6; i++) {
+            free(textures_faces[i]);
+        }
+        free(textures_faces);
+        return true;
 
     } else {
-        cerr << "Failed to load cube texture: " << filename << endl;
-        exit(-1);
+        return false;
     }
-
-    for (int i = 0; i < 6; i++) {
-        free(textures_faces[i]);
-    }
-    free(textures_faces);
 }
 
-unsigned char** CubemapTexture::loadFaces() {
-    unsigned char* im_data = stbi_load(filename.c_str(), &width, &height, &n_channels, 0);
+unsigned char** CubemapTexture::loadFaces(Texture* texture) {
+    int im_width, im_height, n_channels;
+    unsigned char* im_data = stbi_load(texture->filename.c_str(), &im_width, &im_height, &n_channels, 0);
 
     if (!im_data) {
         return NULL;
     }
-    updateColorFormat();
+    texture->n_channels = n_channels;
+    updateColorFormat(texture);
 
-    int face_width = width / 4;
-    int face_height = height / 3;
-    if (face_width == face_height && width % 4 == 0 && height % 3 == 0) {
-        face_side = face_width;
-    } else {
-        cerr << "Texture file " << filename << " size does not match with cubemap" << endl;
+    if (im_height % 3 != 0 || im_width % 4 != 0) {
+        cerr << "Texture file " << texture->filename << " size does not match with cubemap" << endl;
         return NULL;
     }
 
+    int face_height = im_height / 3;
+    int face_width = im_width / 4;
+    texture->face_height = face_height;
+    texture->face_width = face_width;
+
     unsigned char** faces_buffer = (unsigned char**)malloc(6 * sizeof(unsigned char*));
     for (int i = 0; i < 6; i++) {
-        faces_buffer[i] = (unsigned char*)malloc(face_side * face_side * n_channels * sizeof(unsigned char));
+        faces_buffer[i] = (unsigned char*)malloc(face_height * face_width * n_channels * sizeof(unsigned char));
     }
 
     // Right face
-    int y_pixel = face_side;
-    int x_pixel = 2 * face_side;
-    copyToBuffer(im_data, faces_buffer[RIGHT_FACE], y_pixel, x_pixel);
+    int face_y = face_height;
+    int face_x = 2 * face_width;
+    copyFaceToBuffer(im_data, im_width, face_height, face_width, n_channels, face_y, face_x, faces_buffer[RIGHT_FACE]);
 
     // Left face
-    y_pixel = face_side;
-    x_pixel = 0;
-    copyToBuffer(im_data, faces_buffer[LEFT_FACE], y_pixel, x_pixel);
+    face_y = face_height;
+    face_x = 0;
+    copyFaceToBuffer(im_data, im_width, face_height, face_width, n_channels, face_y, face_x, faces_buffer[LEFT_FACE]);
 
     // Top face
-    y_pixel = 0;
-    x_pixel = face_side;
-    copyToBuffer(im_data, faces_buffer[TOP_FACE], y_pixel, x_pixel);
+    face_y = 0;
+    face_x = face_width;
+    copyFaceToBuffer(im_data, im_width, face_height, face_width, n_channels, face_y, face_x, faces_buffer[TOP_FACE]);
 
     // Bottom face
-    y_pixel = 2 * face_side;
-    x_pixel = face_side;
-    copyToBuffer(im_data, faces_buffer[BOTTOM_FACE], y_pixel, x_pixel);
+    face_y = 2 * face_height;
+    face_x = face_width;
+    copyFaceToBuffer(im_data, im_width, face_height, face_width, n_channels, face_y, face_x, faces_buffer[BOTTOM_FACE]);
 
     // Front face
-    y_pixel = face_side;
-    x_pixel = face_side;
-    copyToBuffer(im_data, faces_buffer[FRONT_FACE], y_pixel, x_pixel);
+    face_y = face_height;
+    face_x = face_width;
+    copyFaceToBuffer(im_data, im_width, face_height, face_width, n_channels, face_y, face_x, faces_buffer[FRONT_FACE]);
 
     // Back face
-    y_pixel = face_side;
-    x_pixel = 3 * face_side;
-    copyToBuffer(im_data, faces_buffer[BACK_FACE], y_pixel, x_pixel);
+    face_y = face_height;
+    face_x = 3 * face_width;
+    copyFaceToBuffer(im_data, im_width, face_height, face_width, n_channels, face_y, face_x, faces_buffer[BACK_FACE]);
 
     stbi_image_free(im_data);
     return faces_buffer;
 }
 
-void CubemapTexture::copyToBuffer(unsigned char* data, unsigned char* buf, int y_px, int x_px) {
+void CubemapTexture::copyFaceToBuffer(unsigned char* data, int im_w, int f_h, int f_w, int n_c, int f_y, int f_x, unsigned char* buf) {
     int buff_i = 0;
+    for (int y = f_y; y < f_y + f_h; y++) {
+        int y_offset = y * im_w * n_c;
 
-    for (int y = y_px; y < y_px + face_side; y++) {
-        int y_offset = y * width * n_channels;
+        for (int x = f_x; x < f_x + f_w; x++) {
+            int x_offset = x * n_c;
 
-        for (int x = x_px; x < x_px + face_side; x++) {
-            int x_offset = x * n_channels;
-
-            for (int c = 0; c < n_channels; c++) {
+            for (int c = 0; c < n_c; c++) {
                 buf[buff_i++] = data[y_offset + x_offset + c];
             }
         }
     }
 }
 
-void CubemapTexture::updateColorFormat() {
-    switch (n_channels) {
+void CubemapTexture::setTexParameters() {
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+}
+
+void CubemapTexture::updateColorFormat(Texture* texture) {
+    switch (texture->n_channels) {
         case 1:
-            color_format = GL_RED;
+            texture->color_format = GL_RED;
             break;
         case 2:
-            color_format = GL_RG;
+            texture->color_format = GL_RG;
             break;
         case 3:
-            color_format = GL_RGB;
+            texture->color_format = GL_RGB;
             break;
         case 4:
-            color_format = GL_RGBA;
+            texture->color_format = GL_RGBA;
             break;
     }
 }

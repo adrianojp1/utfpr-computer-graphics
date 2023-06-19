@@ -4,33 +4,37 @@
 
 class CubemapTexture {
    public:
-    CubemapTexture(const std::string filename);
+    CubemapTexture(const std::string text_file, const std::string normal_map_file, bool is_flat);
 
-    void load(bool flat);
-
+    void load();
     void use();
-
-    // Getters
-    int getId() const;
-
-    int width;
-    int height;
-    int face_side;
-    int n_channels;
+    bool hasNormalMap();
 
    private:
-    std::string filename;
+    class Texture {
+       public:
+        int face_width;
+        int face_height;
+        int n_channels;
 
-    unsigned int id;
+        unsigned int color_format;
+        unsigned int id;
 
-    unsigned int color_format;
+        std::string filename;
+    };
 
-    void loadFlat();
-    unsigned char* loadFace();
+    Texture* diffuse_map;
+    Texture* normal_map;
 
-    void loadCube();
-    unsigned char** loadFaces();
-    void copyToBuffer(unsigned char* data, unsigned char* buf, int y_px, int x_px);
+    bool is_flat;
 
-    void updateColorFormat();
+    static bool loadFlat(Texture* texture);
+    static unsigned char* loadFace(Texture* texture);
+
+    static bool loadCube(Texture* texture);
+    static unsigned char** loadFaces(Texture* texture);
+    static void copyFaceToBuffer(unsigned char* data, int im_w, int f_h, int f_w, int n_c, int f_y, int f_x, unsigned char* buf);
+
+    static void setTexParameters();
+    static void updateColorFormat(Texture* texture);
 };

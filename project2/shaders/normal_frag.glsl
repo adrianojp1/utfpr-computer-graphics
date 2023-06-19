@@ -11,6 +11,7 @@ uniform vec3 light_position;
 uniform vec3 camera_position;
 uniform vec3 object_center;
 uniform samplerCube diffuse_map;
+uniform samplerCube normal_map;
 
 void main()
 {

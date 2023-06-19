@@ -57,14 +57,13 @@ MeshViewer* MeshViewer::instance() {
 
 void MeshViewer::init(int argc, char** argv) {
     // Check .obj file argument
-    if (argc < 3) {
+    if (argc < 4) {
         cerr << "Usage: ./mesh2 object.obj texture.ext normal_map.ext2" << endl;
         exit(-1);
     }
     string mesh_filename = argv[1];
     string texture_filename = argv[2];
-    // const string normal_map_filename = argv[3];
-    string normal_map_filename = "";
+    string normal_map_filename = argv[3];
 
     // Init MeshViewer attributes
     initAttributes();
@@ -99,8 +98,6 @@ void MeshViewer::initAttributes() {
     win_width = 800;
     win_height = 800;
 
-    background_color = vec4{ 1.0f, 0.0f, 1.0f, 0.0f };
-
     /** Time control */
     old_time = 0;
     delta_time = 0;
@@ -114,7 +111,7 @@ void MeshViewer::initAttributes() {
     /** Shaders */
     shaders.push_back(new Shader("./shaders/light_vtx.glsl", "./shaders/light_frag.glsl"));
     shaders.push_back(new Shader("./shaders/text_vtx.glsl", "./shaders/text_frag.glsl"));
-    shaders.push_back(new Shader("./shaders/text_vtx.glsl", "./shaders/text_frag.glsl"));
+    shaders.push_back(new Shader("./shaders/normal_vtx.glsl", "./shaders/normal_frag.glsl"));
 
     /** Camera */
     camera_position = vec3{ 0.0f, 0.0f, 0.0f };
@@ -124,6 +121,10 @@ void MeshViewer::initAttributes() {
     /** Light */
     light_color = vec3{ 1.0f, 1.0f, 1.0f };
     light_position = vec3{ 0.0f, 0.0f, 0.0f };
+
+    /** Color */
+    background_color = vec3{ 0.0f, 0.1f, 0.15f };
+    default_object_color = vec3{ 1.0f, 0.93f, 0.72f };
 
     /** Projection */
     projection_fovy = 45.0f;
@@ -147,8 +148,8 @@ void MeshViewer::loadResources(string mesh_file, string texture_file, string nor
     changeColorMode(color_mode);
 
     bool is_flat = texture_file.find("flat") != string::npos;
-    texture = new CubemapTexture(texture_file);
-    texture->load(is_flat);
+    texture = new CubemapTexture(texture_file, normal_map_file, is_flat);
+    texture->load();
     texture->use();
 }
 
@@ -176,40 +177,32 @@ void MeshViewer::fitViewProjection() {
 }
 
 void MeshViewer::_display() {
-    glClearColor(background_color.r, background_color.g, background_color.b, background_color.a);
+    glClearColor(background_color.r, background_color.g, background_color.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    int shader_id = shaders[color_mode]->getId();
-
-    switch (color_mode) {
-        case LIGHTNING_MODE:
-            bindLightMode(shader_id);
-            break;
-        case TEXTURE_MODE:
-            bindTextMode(shader_id);
-            break;
-        case TEXTURE_NORMAL_MODE:
-            bindTextNormalMode(shader_id);
-            break;
-    }
 
     model = scene_mesh.getTransformation();
 
-    unsigned int light_color_loc = glGetUniformLocation(shader_id, "light_color");
-    unsigned int light_position_loc = glGetUniformLocation(shader_id, "light_position");
-    unsigned int camera_position_loc = glGetUniformLocation(shader_id, "camera_position");
+    Shader* shader = shaders[color_mode];
 
-    unsigned int model_loc = glGetUniformLocation(shader_id, "model");
-    unsigned int view_loc = glGetUniformLocation(shader_id, "view");
-    unsigned int projection_loc = glGetUniformLocation(shader_id, "projection");
+    shader->setVec3("light_color", light_color);
+    shader->setVec3("light_position", light_position);
+    shader->setVec3("camera_position", camera_position);
 
-    glUniform3f(light_color_loc, light_color.r, light_color.g, light_color.b);
-    glUniform3f(light_position_loc, light_position.x, light_position.y, light_position.z);
-    glUniform3f(camera_position_loc, camera_position.x, camera_position.y, camera_position.z);
+    shader->setMat4("model", model);
+    shader->setMat4("view", view);
+    shader->setMat4("projection", projection);
 
-    glUniformMatrix4fv(model_loc, 1, GL_FALSE, value_ptr(model));
-    glUniformMatrix4fv(view_loc, 1, GL_FALSE, value_ptr(view));
-    glUniformMatrix4fv(projection_loc, 1, GL_FALSE, value_ptr(projection));
+    switch (color_mode) {
+        case LIGHTNING_MODE:
+            bindLightMode(shader);
+            break;
+        case TEXTURE_MODE:
+            bindTextMode(shader);
+            break;
+        case TEXTURE_NORMAL_MODE:
+            bindTextNormalMode(shader);
+            break;
+    }
 
     for (Mesh mesh : scene_mesh.getMeshList()) {
         glBindVertexArray(mesh.VAO);
@@ -224,19 +217,18 @@ void MeshViewer::_display() {
     old_time = cur_time;
 }
 
-void MeshViewer::bindLightMode(int shader_id) {
-    unsigned int object_color_loc = glGetUniformLocation(shader_id, "object_color");
-    glUniform3f(object_color_loc, 0.7f, 0.7f, 0.0f);
+void MeshViewer::bindLightMode(Shader* shader) {
+    shader->setVec3("object_color", default_object_color);
 }
 
-void MeshViewer::bindTextMode(int shader_id) {
-    vec3 object_center = scene_mesh.getCenter();
-
-    unsigned int object_center_loc = glGetUniformLocation(shader_id, "object_center");
-    glUniform3f(object_center_loc, object_center.x, object_center.y, object_center.z);
+void MeshViewer::bindTextMode(Shader* shader) {
+    shader->setVec3("object_center", scene_mesh.getCenter());
+    shader->setInt("diffuse_map", 0);
 }
 
-void MeshViewer::bindTextNormalMode(int shader_id) {
+void MeshViewer::bindTextNormalMode(Shader* shader) {
+    bindTextMode(shader);
+    shader->setInt("normal_map", 1);
 }
 
 void MeshViewer::_reshape(int width, int height) {
@@ -306,9 +298,13 @@ void MeshViewer::_idle() {
 }
 
 void MeshViewer::changeColorMode(unsigned short mode) {
-    color_mode = mode;
-    shaders[color_mode]->use();
-    cout << "Color mode set to " << color_mode << ", shader " << shaders[color_mode]->getId() << endl;
+    if (mode == TEXTURE_NORMAL_MODE && !texture->hasNormalMap()) {
+        cerr << "Texture does not have normal map!" << endl;
+    } else {
+        color_mode = mode;
+        shaders[color_mode]->use();
+        cout << "Color mode set to " << color_mode << ", shader " << shaders[color_mode]->getId() << endl;
+    }
 }
 
 void MeshViewer::switchPolygonMode() {

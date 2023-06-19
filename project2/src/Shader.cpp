@@ -2,8 +2,6 @@
 
 #include <GL/glew.h>
 
-#include <iostream>
-
 using namespace std;
 
 Shader::Shader(const char* vtx_filename, const char* frag_filename) {
@@ -26,6 +24,18 @@ void Shader::use() {
 
 int Shader::getId() const {
     return id;
+}
+
+void Shader::setInt(const std::string& name, int value) {
+    glUniform1i(glGetUniformLocation(id, name.c_str()), value);
+}
+
+void Shader::setVec3(const std::string& name, const glm::vec3& value) {
+    glUniform3fv(glGetUniformLocation(id, name.c_str()), 1, &value[0]);
+}
+
+void Shader::setMat4(const std::string& name, const glm::mat4& mat) {
+    glUniformMatrix4fv(glGetUniformLocation(id, name.c_str()), 1, GL_FALSE, &mat[0][0]);
 }
 
 const char* Shader::readFile(const char* filename) {

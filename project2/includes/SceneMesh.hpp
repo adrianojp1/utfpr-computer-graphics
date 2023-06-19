@@ -12,7 +12,8 @@
 #include <vector>
 
 /** Single mesh data class */
-struct Mesh {
+class Mesh {
+   public:
     unsigned int VAO, VBO1, VBO2, EBO;
 
     std::vector<glm::vec3> vert_positions;
