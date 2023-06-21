@@ -14,24 +14,24 @@ uniform samplerCube diffuse_map;
 
 void main()
 {
-    float ka = 0.2;
+    float ka = 0.1;
     vec3 ambient = ka * light_color;
 
-    float kd = 0.8;
+    float kd = 0.5;
     vec3 n = normalize(normal);
     vec3 l = normalize(light_position - transf_frag_pos);
 
     float diff = max(dot(n,l), 0.0);
     vec3 diffuse = kd * diff * light_color;
 
-    float ks = 1.0;
+    float ks = 0.8;
     vec3 v = normalize(camera_position - transf_frag_pos);
     vec3 r = reflect(-l, n);
 
     float spec = pow(max(dot(v, r), 0.0), 32);
     vec3 specular = ks * spec * light_color;
 
-    vec3 object_color = vec3(textureCube(diffuse_map, frag_pos - object_center));
+    vec3 object_color = textureCube(diffuse_map, frag_pos - object_center).rgb;
     vec3 light = (ambient + diffuse + specular) * object_color;
     frag_color = vec4(light, 1.0);
 }

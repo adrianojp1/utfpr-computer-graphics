@@ -20,13 +20,10 @@ using namespace glm;
 #define KEY_A 4
 #define KEY_D 5
 
-// Axis vectors
-#define AXIS_X \
-    vec3 { 1.0f, 0.0f, 0.0f }
-#define AXIS_Y \
-    vec3 { 0.0f, 1.0f, 0.0f }
-#define AXIS_Z \
-    vec3 { 0.0f, 0.0f, 1.0f }
+// Axis directions
+const vec3 axis_x_dir = { 1.0f, 0.0f, 0.0f };
+const vec3 axis_y_dir = { 0.0f, 1.0f, 0.0f };
+const vec3 axis_z_dir = { 0.0f, 0.0f, 1.0f };
 
 /** Callbacks pure functions */
 void display() { MeshViewer::instance()->_display(); }
@@ -124,7 +121,7 @@ void MeshViewer::initAttributes() {
 
     /** Color */
     background_color = vec3{ 0.0f, 0.1f, 0.15f };
-    default_object_color = vec3{ 1.0f, 0.93f, 0.72f };
+    default_object_color = vec3{ 0.5f, 0.5f, 0.5f };
 
     /** Projection */
     projection_fovy = 45.0f;
@@ -171,6 +168,8 @@ void MeshViewer::fitViewProjection() {
     projection = perspective(radians(projection_fovy), (GLfloat)win_width / win_height, projection_near, projection_far);
 
     light_position = camera_position;
+    light_position.x += 0.7f;
+    light_position.y += 0.5f;
 
     // Init translation proportion
     translation_proportion = 0.05 * std::max(std::max(scene_box_size.x, scene_box_size.y), scene_box_size.z);
@@ -336,22 +335,22 @@ void MeshViewer::transformMesh(unsigned short key) {
 void MeshViewer::translateMesh(unsigned short key) {
     switch (key) {
         case KEY_UP:
-            scene_mesh.translate(AXIS_Y * translation_proportion);
+            scene_mesh.translate(axis_y_dir * translation_proportion);
             break;
         case KEY_DOWN:
-            scene_mesh.translate(AXIS_Y * -translation_proportion);
+            scene_mesh.translate(axis_y_dir * -translation_proportion);
             break;
         case KEY_RIGHT:
-            scene_mesh.translate(AXIS_X * translation_proportion);
+            scene_mesh.translate(axis_x_dir * translation_proportion);
             break;
         case KEY_LEFT:
-            scene_mesh.translate(AXIS_X * -translation_proportion);
+            scene_mesh.translate(axis_x_dir * -translation_proportion);
             break;
         case KEY_A:
-            scene_mesh.translate(AXIS_Z * translation_proportion);
+            scene_mesh.translate(axis_z_dir * translation_proportion);
             break;
         case KEY_D:
-            scene_mesh.translate(AXIS_Z * -translation_proportion);
+            scene_mesh.translate(axis_z_dir * -translation_proportion);
             break;
     }
 }
@@ -359,22 +358,22 @@ void MeshViewer::translateMesh(unsigned short key) {
 void MeshViewer::rotateMesh(unsigned short key) {
     switch (key) {
         case KEY_UP:
-            scene_mesh.rotate(10.0f, AXIS_X);
+            scene_mesh.rotate(10.0f, axis_x_dir);
             break;
         case KEY_DOWN:
-            scene_mesh.rotate(-10.0f, AXIS_X);
+            scene_mesh.rotate(-10.0f, axis_x_dir);
             break;
         case KEY_RIGHT:
-            scene_mesh.rotate(10.0f, AXIS_Y);
+            scene_mesh.rotate(10.0f, axis_y_dir);
             break;
         case KEY_LEFT:
-            scene_mesh.rotate(-10.0f, AXIS_Y);
+            scene_mesh.rotate(-10.0f, axis_y_dir);
             break;
         case KEY_A:
-            scene_mesh.rotate(10.0f, AXIS_Z);
+            scene_mesh.rotate(10.0f, axis_z_dir);
             break;
         case KEY_D:
-            scene_mesh.rotate(-10.0f, AXIS_Z);
+            scene_mesh.rotate(-10.0f, axis_z_dir);
             break;
     }
 }
@@ -382,22 +381,22 @@ void MeshViewer::rotateMesh(unsigned short key) {
 void MeshViewer::scaleMesh(unsigned short key) {
     switch (key) {
         case KEY_UP:
-            scene_mesh.scale(AXIS_Y * 0.1f);
+            scene_mesh.scale(axis_y_dir * 0.1f);
             break;
         case KEY_DOWN:
-            scene_mesh.scale(AXIS_Y * -0.1f);
+            scene_mesh.scale(axis_y_dir * -0.1f);
             break;
         case KEY_RIGHT:
-            scene_mesh.scale(AXIS_X * 0.1f);
+            scene_mesh.scale(axis_x_dir * 0.1f);
             break;
         case KEY_LEFT:
-            scene_mesh.scale(AXIS_X * -0.1f);
+            scene_mesh.scale(axis_x_dir * -0.1f);
             break;
         case KEY_A:
-            scene_mesh.scale(AXIS_Z * 0.1f);
+            scene_mesh.scale(axis_z_dir * 0.1f);
             break;
         case KEY_D:
-            scene_mesh.scale(AXIS_Z * -0.1f);
+            scene_mesh.scale(axis_z_dir * -0.1f);
             break;
     }
 }
