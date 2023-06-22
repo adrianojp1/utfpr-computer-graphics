@@ -5,11 +5,12 @@
 #include <iostream>
 #include <limits>
 #include <assimp/postprocess.h>
+#include <utils.hpp>
 
 using namespace std;
 using namespace glm;
 
-#define ASSIMP_PROCESSING_FLAGS aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_GenBoundingBoxes | aiProcess_GenSmoothNormals
+#define ASSIMP_PROCESSING_FLAGS aiProcess_Triangulate | aiProcess_GenBoundingBoxes | aiProcess_GenSmoothNormals
 
 const float min_float = numeric_limits<float>::min();
 const float max_float = numeric_limits<float>::max();
@@ -53,7 +54,16 @@ void SceneMesh::loadModel() {
         for (unsigned int i = 0; i < num_meshes; ++i) {
             mesh = scene->mMeshes[i];
 
-            updateSceneBoundBox(mesh->mAABB);
+            // Update scene bounding box and center
+            aiAABB* mesh_bound_box = &mesh->mAABB;
+            vec3 mesh_max = toVec3(mesh_bound_box->mMax);
+            vec3 mesh_min = toVec3(mesh_bound_box->mMin);
+
+            bound_box_max = glm::max(bound_box_max, mesh_max);
+            bound_box_min = glm::min(bound_box_min, mesh_min);
+
+            mesh_list[i].center = (mesh_max + mesh_min) / 2.0f;
+            center += mesh_list[i].center;
 
             // (2) Loop through all mesh [i]'s vertices
             // ---------------------------------------------------
@@ -67,37 +77,31 @@ void SceneMesh::loadModel() {
                 } else {
                     mesh_list[i].vert_normals.push_back(vec3(0.0f, 0.0f, 0.0f));
                 }
+
+                mesh_list[i].vert_tangents.push_back(vec3(0.0f, 0.0f, 0.0f));
             }
 
             // (3) Loop through all mesh [i]'s Indices
             // --------------------------------------------------
-            for (unsigned int i3 = 0; i3 < mesh->mNumFaces; ++i3) {
-                for (unsigned int i4 = 0; i4 < mesh->mFaces[i3].mNumIndices; ++i4) {
-                    mesh_list[i].vert_indices.push_back(mesh->mFaces[i3].mIndices[i4]);
-                }
-            }
+            // for (unsigned int i3 = 0; i3 < mesh->mNumFaces; ++i3) {
+            //     for (unsigned int i4 = 0; i4 < mesh->mFaces[i3].mNumIndices; ++i4) {
+            //         mesh_list[i].vert_indices.push_back(mesh->mFaces[i3].mIndices[i4]);
+            //     }
+            // }
 
+            calcTangentSpace(i);
             setBufferData(i);   // Set up: VAO, VBO and EBO.
         }
 
-        center = (bound_box_max + bound_box_min) / 2.0f;
+        center /= (float)num_meshes;
     }
-}
-
-void SceneMesh::updateSceneBoundBox(aiAABB bound_box) {
-    bound_box_max.x = std::max(bound_box_max.x, (float)bound_box.mMax.x);
-    bound_box_max.y = std::max(bound_box_max.y, (float)bound_box.mMax.y);
-    bound_box_max.z = std::max(bound_box_max.z, (float)bound_box.mMax.z);
-
-    bound_box_min.x = std::min(bound_box_min.x, (float)bound_box.mMin.x);
-    bound_box_min.y = std::min(bound_box_min.y, (float)bound_box.mMin.y);
-    bound_box_min.z = std::min(bound_box_min.z, (float)bound_box.mMin.z);
 }
 
 void SceneMesh::setBufferData(unsigned int index) {
     glGenVertexArrays(1, &mesh_list[index].VAO);
     glGenBuffers(1, &mesh_list[index].VBO1);
     glGenBuffers(1, &mesh_list[index].VBO2);
+    glGenBuffers(1, &mesh_list[index].VBO3);
     glGenBuffers(1, &mesh_list[index].EBO);
 
     glBindVertexArray(mesh_list[index].VAO);
@@ -118,12 +122,58 @@ void SceneMesh::setBufferData(unsigned int index) {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
+    // Vertex Tangents
+    // --------------------
+    glBindBuffer(GL_ARRAY_BUFFER, mesh_list[index].VBO3);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * mesh_list[index].vert_tangents.size(), &mesh_list[index].vert_tangents[0], GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
     // Indices for: glDrawElements()
     // ---------------------------------------
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_list[index].EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * mesh_list[index].vert_indices.size(), &mesh_list[index].vert_indices[0], GL_STATIC_DRAW);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_list[index].EBO);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * mesh_list[index].vert_indices.size(), &mesh_list[index].vert_indices[0], GL_STATIC_DRAW);
 
     glBindVertexArray(0);   // Unbind VAO
+}
+
+void SceneMesh::calcTangentSpace(unsigned int index) {
+    int i = 0;
+    int i1, i2, i3;
+    float f;
+    vec3 pos1, pos2, pos3, edge1, edge2, tan;
+    vec2 uv1, uv2, uv3, deltaUV1, deltaUV2;
+
+    while (i < mesh_list[index].vert_positions.size()) {
+        i1 = i++;
+        i2 = i++;
+        i3 = i++;
+
+        pos1 = mesh_list[index].vert_positions[i1];
+        pos2 = mesh_list[index].vert_positions[i2];
+        pos3 = mesh_list[index].vert_positions[i3];
+
+        vec3 mesh_center = mesh_list[index].center;
+        uv1 = toCubeUV(pos1 - mesh_center, mesh_list[index].vert_normals[i1]);
+        uv2 = toCubeUV(pos2 - mesh_center, mesh_list[index].vert_normals[i2]);
+        uv3 = toCubeUV(pos3 - mesh_center, mesh_list[index].vert_normals[i3]);
+
+        edge1 = pos2 - pos1;
+        edge2 = pos3 - pos1;
+        deltaUV1 = uv2 - uv1;
+        deltaUV2 = uv3 - uv1;
+
+        f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        tan.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tan.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tan.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+        mesh_list[index].vert_tangents[i1] += tan;
+        mesh_list[index].vert_tangents[i2] += tan;
+        mesh_list[index].vert_tangents[i3] += tan;
+    }
 }
 
 void SceneMesh::translate(glm::vec3 translation) {

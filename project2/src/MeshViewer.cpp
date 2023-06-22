@@ -20,6 +20,20 @@ using namespace glm;
 #define KEY_A 4
 #define KEY_D 5
 
+// Transformation modes
+#define TRANSLATION_MODE 0
+#define ROTATION_MODE 1
+#define SCALE_MODE 2
+
+// Polygon modes
+#define FACES_MODE 0
+#define WIREFRAME_MODE 1
+
+// Color modes
+#define LIGHTNING_MODE 0
+#define TEXTURE_MODE 1
+#define TEXTURE_NORMAL_MODE 2
+
 // Axis directions
 const vec3 axis_x_dir = { 1.0f, 0.0f, 0.0f };
 const vec3 axis_y_dir = { 0.0f, 1.0f, 0.0f };
@@ -168,8 +182,8 @@ void MeshViewer::fitViewProjection() {
     projection = perspective(radians(projection_fovy), (GLfloat)win_width / win_height, projection_near, projection_far);
 
     light_position = camera_position;
-    light_position.x += 0.7f;
-    light_position.y += 0.5f;
+    light_position.x += scene_front_size / 2.0f * 0.7f;
+    light_position.y += scene_front_size / 2.0f * 0.5f;
 
     // Init translation proportion
     translation_proportion = 0.05 * std::max(std::max(scene_box_size.x, scene_box_size.y), scene_box_size.z);
@@ -205,7 +219,8 @@ void MeshViewer::_display() {
 
     for (Mesh mesh : scene_mesh.getMeshList()) {
         glBindVertexArray(mesh.VAO);
-        glDrawElements(GL_TRIANGLES, (GLsizei)mesh.vert_indices.size(), GL_UNSIGNED_INT, 0);
+        // glDrawElements(GL_TRIANGLES, (GLsizei)mesh.vert_normals.size(), GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, (GLsizei)mesh.vert_positions.size());
         glBindVertexArray(0);
     }
 

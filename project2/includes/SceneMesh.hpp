@@ -14,11 +14,14 @@
 /** Single mesh data class */
 class Mesh {
    public:
-    unsigned int VAO, VBO1, VBO2, EBO;
+    unsigned int VAO, VBO1, VBO2, VBO3, EBO;
 
     std::vector<glm::vec3> vert_positions;
     std::vector<glm::vec3> vert_normals;
+    std::vector<glm::vec3> vert_tangents;
     std::vector<unsigned int> vert_indices;
+
+    glm::vec3 center;
 };
 
 class SceneMesh {
@@ -66,7 +69,8 @@ class SceneMesh {
    private:
     // Load methods
     void loadModel();
-    void updateSceneBoundBox(aiAABB bound_box);
     void setBufferData(unsigned int index);
+    void calcTangentSpace(unsigned int index);
+
     void updateTransformation();
 };

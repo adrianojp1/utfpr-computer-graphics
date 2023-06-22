@@ -6,20 +6,6 @@
 #include "Shader.hpp"
 #include "CubemapTexture.hpp"
 
-// Transformation modes
-#define TRANSLATION_MODE 0
-#define ROTATION_MODE 1
-#define SCALE_MODE 2
-
-// Polygon modes
-#define FACES_MODE 0
-#define WIREFRAME_MODE 1
-
-// Color modes
-#define LIGHTNING_MODE 0
-#define TEXTURE_MODE 1
-#define TEXTURE_NORMAL_MODE 2
-
 class MeshViewer {
    private:
     static MeshViewer* _instance;
